@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+# saved schedule pages and exports hold personal data; keep them out of the repo
+*.ics
+*.mhtml
+*.mht
+ontario-tech-*.json
