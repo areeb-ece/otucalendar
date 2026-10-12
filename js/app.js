@@ -664,14 +664,17 @@ document.addEventListener("keydown", e => {
   else if (e.key === "t") $("#wToday").click();
 });
 
-// theme
+// theme: the shared settings button (/design/ui.js) when it loaded, else a light/dark switch
 function setTheme(t, save = true) {
   document.documentElement.dataset.theme = t;
   $("#btnTheme").textContent = t === "light" ? "Dark" : "Light";
   if (save) try { localStorage.setItem(THEME_KEY, t); } catch (e) {}
 }
-$("#btnTheme").addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"));
-setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark", false);
+if (!(window.SiteDesign && SiteDesign.open)) {
+  $("#btnTheme").hidden = false;
+  $("#btnTheme").addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"));
+  setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark", false);
+}
 
 // start
 S.parsed = { events: [], calendar: {} };

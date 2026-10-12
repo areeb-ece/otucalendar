@@ -2,7 +2,13 @@
 /* End-to-end check in a real browser (needs Playwright: `npm i --no-save playwright`).
  * Serves the site locally, imports the fictional saved page as .html and as a real
  * Chrome "Single File" (.mhtml) snapshot, and asserts that the page never touches
- * the network beyond its own files. Run: npm run test:browser */
+ * the network beyond its own files. Run: npm run test:browser
+ *
+ * The shared theme, settings panel and night sky live in the portfolio repo
+ * (areeb-ece.github.io, public/design/). Without them the page must fall back to its own
+ * light/dark switch, which is what runs by default. To check the real thing, point
+ * DESIGN_DIR at a checkout's public/design:
+ *   DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser */
 const http = require("node:http");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -39,10 +45,30 @@ const server = http.createServer((req, res) => {
     page.on("pageerror", e => errors.push(e.message));
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     page.on("request", r => { if (!r.url().startsWith(base) && !r.url().startsWith("blob:")) outside.push(r.url()); });
-    // The shared master palette lives on the portfolio site, not in this repo; locally the
-    // page falls back to the colours in css/style.css, so serve it as an empty stylesheet.
-    await page.route("**/design/tokens.css", r => r.fulfill({ status: 200, contentType: "text/css", body: "" }));
+    const DESIGN = process.env.DESIGN_DIR && path.resolve(process.env.DESIGN_DIR);
+    await page.route("**/design/*", r => {
+      const name = path.basename(new URL(r.request().url()).pathname);
+      const type = name.endsWith(".css") ? "text/css" : "text/javascript";
+      r.fulfill({ status: 200, contentType: type, body: DESIGN ? fs.readFileSync(path.join(DESIGN, name)) : "" });
+    });
     await page.goto(base + "/");
+    if (DESIGN) {
+      // The shared settings button replaces the light/dark switch, and the sky is drawn.
+      assert.ok(await page.isVisible("#designSettings"), "settings button");
+      assert.ok(await page.isHidden("#btnTheme"));
+      assert.ok(await page.$$eval("#stage .sky circle", c => c.length) > 0, "stars behind the preview");
+      await page.evaluate(() => SiteDesign.set({ theme: "console" }));
+      await page.reload();
+      assert.equal(await page.getAttribute("html", "data-theme"), "console", "theme remembered");
+      await page.evaluate(() => SiteDesign.reset());
+      console.log("ok shared settings button, theme and night sky");
+    } else {
+      assert.ok(await page.isVisible("#btnTheme"), "offline: the light/dark switch stands in for the settings button");
+      await page.$eval("#btnTheme", b => b.click()); // under the start screen
+      assert.equal(await page.getAttribute("html", "data-theme"), "light");
+      await page.$eval("#btnTheme", b => b.click());
+      console.log("ok offline light/dark switch");
+    }
 
     for (const file of [path.join(ROOT, "samples/saved-schedule-page.example.html"), mhtml]) {
       await page.setInputFiles("#fileInput", file);

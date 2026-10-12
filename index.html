@@ -14,9 +14,13 @@
 <link rel="preload" href="assets/fonts/mononoki-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/mononoki-Bold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/style.css">
-<!-- The shared master palette (areeb-ece.github.io/design/tokens.css). It overrides the
-     colours in css/style.css, which stay as a fallback when opened offline or from disk. -->
+<!-- Shared with areeb-ece.github.io and PrereqFlow (areeb-ece.github.io/design/): the master
+     palette and its themes, the settings panel and the night sky, and the visitor's saved
+     settings (one localStorage entry for all three sites). The colours in css/style.css
+     and js/theme.js's light/dark switch are a fallback for when the page is opened offline. -->
 <link rel="stylesheet" href="/design/tokens.css">
+<link rel="stylesheet" href="/design/ui.css">
+<script src="/design/theme.js"></script>
 <script src="js/theme.js"></script>
 </head>
 <body>
@@ -33,7 +37,8 @@
       <button class="btn" id="btnSaveJson" type="button" title="Save the parsed meetings as editable JSON, to reopen here later without signing in" disabled>Save .json</button>
       <button class="btn primary" id="btnDownload" type="button" disabled>Download .ics</button>
       <button class="btn ghost" id="btnHome" type="button" title="Back to the start screen">Start over</button>
-      <button class="btn theme" id="btnTheme" type="button" title="Switch between the dark and light sheet">Light</button>
+      <span class="design-slot" data-design-settings></span>
+      <button class="btn theme" id="btnTheme" type="button" title="Switch between the dark and light sheet" hidden>Light</button>
     </div>
   </header>
 
@@ -107,7 +112,7 @@
       </section>
     </aside>
 
-    <main class="stage" id="stage">
+    <main class="stage" id="stage" data-sky>
       <div class="stagebar">
         <div class="seg" id="viewSeg" role="radiogroup" aria-label="Preview">
           <button type="button" role="radio" data-view="weeks" aria-checked="true">Weeks</button>
@@ -245,7 +250,7 @@
       <p><b>No network.</b> The page's security policy (<code>connect-src 'none'</code>) stops it from sending anything over the network, even by mistake.</p>
       <p><b>No sign-in here.</b> You sign in only on the university's own page. This site never sees your password, cookies or session.</p>
       <p><b>Inert parsing.</b> An uploaded page is opened as an inert document: its scripts don't run, its images and links aren't loaded, and it is never shown here. Only course codes, titles, CRNs, meeting times and rooms are read from it.</p>
-      <p><b>Nothing kept.</b> Your schedule isn't stored; closing the tab clears it. Only your theme and appearance templates are remembered in this browser.</p>
+      <p><b>Nothing kept.</b> Your schedule isn't stored; closing the tab clears it. Only your appearance templates and display settings (theme, background) are remembered in this browser; the display settings are shared with the other sites on areeb-ece.github.io.</p>
       <p><b>Your files.</b> A saved schedule page contains your name and student number. Delete it once you're done, and sign out of MyOntarioTech.</p>
       <p class="tiny">The source is on <a href="https://github.com/areeb-ece/otucalendar" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
     </div>
@@ -265,6 +270,7 @@
 <div class="dropveil" id="dropVeil" hidden><div>Drop to import</div></div>
 <div class="toast" id="toast" role="status" hidden></div>
 
+<script src="/design/ui.js"></script>
 <script src="js/core.js"></script>
 <script src="js/importer.js"></script>
 <script src="js/helper.js"></script>
