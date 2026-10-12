@@ -1,0 +1,49 @@
+{
+  "format": "ontario-tech-calendar-v1",
+  "note": "FICTIONAL SAMPLE ONLY. This is not your registered schedule.",
+  "timezone": "America/Toronto",
+  "courses": [
+    {
+      "term": "202609",
+      "crn": "99901",
+      "code": "DEMO 1000U",
+      "title": "Example Circuits Course",
+      "meetings": [
+        {
+          "kind": "Lecture",
+          "start_date": "2026-09-08",
+          "end_date": "2026-12-07",
+          "start_time": "15:00",
+          "end_time": "16:20",
+          "days": ["Mon", "Wed"],
+          "location": "Example building, room 101",
+          "building_code": "EX",
+          "building_name": "Example building",
+          "room": "101",
+          "instructor": "Example Instructor"
+        }
+      ]
+    },
+    {
+      "term": "202609",
+      "crn": "99902",
+      "code": "DEMO 1000U",
+      "title": "Example Circuits Course",
+      "meetings": [
+        {
+          "kind": "Laboratory",
+          "start_date": "2026-09-17",
+          "end_date": "2026-12-03",
+          "start_time": "11:10",
+          "end_time": "14:00",
+          "days": ["Thu"],
+          "interval_weeks": 2,
+          "location": "Example lab, room 202",
+          "building_code": "EX",
+          "building_name": "Example lab",
+          "room": "202"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Copy this to excluded-dates.txt and enter the dates when YOUR classes do not meet.
+# Check Ontario Tech's academic calendar and your course outlines.
+# Examples of the syntax (uncomment and replace with the correct dates):
+# 2026-10-12
+# 2026-10-13..2026-10-16
+# These example dates are not an automatically verified holiday schedule.
