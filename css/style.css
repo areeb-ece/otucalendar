@@ -8,31 +8,31 @@
 @font-face { font-family: "mononoki"; src: url("../assets/fonts/mononoki-Bold.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
 
 :root {
-  --bg: #15171C;
-  --sheet: #1A1D23;
-  --sheet-2: #1D2027;
-  --card: #23272F;
-  --card-hover: #2A2F38;
-  --ink: #E8E4DC;
-  --ink-2: #BAB5AB;
-  --ink-3: #8C8880;
-  --ink-4: #66635D;
-  --rule: #353A45;
-  --rule-2: #2A2E37;
-  --grid: rgba(232, 228, 220, 0.03);
+  --bg: #0F1114;
+  --sheet: #14161A;
+  --sheet-2: #17191E;
+  --card: #1C1F25;
+  --card-hover: #23272E;
+  --ink: #F1EDE5;
+  --ink-2: #CAC5BB;
+  --ink-3: #A29E96;
+  --ink-4: #6E6B65;
+  --rule: #2E323B;
+  --rule-2: #23262D;
+  --grid: rgba(241, 237, 229, 0.03);
   --accent: #A3B8F0;
-  --accent-ink: #15171C;
+  --accent-ink: #0F1114;
   --focus-bg: #F3E8C9;
   --focus-ink: #24201A;
   --danger: #EE9585;
   --warn: #EACB76;
   --ok: #9FD4AB;
-  --scrim: rgba(10, 11, 14, 0.62);
+  --scrim: rgba(6, 7, 9, 0.66);
   --glow-a: rgba(146, 177, 238, 0.07);
   --glow-b: rgba(240, 182, 142, 0.05);
-  --hatch: rgba(232, 228, 220, 0.045);
-  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 18px -12px rgba(0, 0, 0, 0.7);
-  --shadow-pop: 0 18px 50px -18px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --hatch: rgba(241, 237, 229, 0.045);
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 18px -12px rgba(0, 0, 0, 0.8);
+  --shadow-pop: 0 18px 50px -18px rgba(0, 0, 0, 0.85), 0 2px 6px rgba(0, 0, 0, 0.3);
   --c0: #92B1EE; --c1: #9FD4AB; --c2: #F0B68E; --c3: #C4A9F2; --c4: #EACB76; --c5: #7DCBC4; --c6: #EBA3C6; --c7: #F0A391;
   --ev-mix: 16%;
   --r-sm: 7px; --r: 10px; --r-lg: 16px;

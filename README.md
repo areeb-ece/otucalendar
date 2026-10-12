@@ -153,7 +153,7 @@ so identical classes keep identical IDs.
 
 ```
 index.html                      page, dialogs, Content Security Policy
-css/style.css                   the PrereqFlow sheet: dark/light tokens, components, week grid
+css/style.css                   the PrereqFlow sheet: fallback dark/light tokens, components, week grid
 js/core.js                      Banner normalization, Toronto time, templates, .ics write + read
 js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
 js/helper.js                    the optional helper bookmark (shown in full on the page)
@@ -170,6 +170,15 @@ assets/fonts/                   mononoki (SIL Open Font License)
 npm test                                      # unit tests, no dependencies
 npm i --no-save playwright && npm run test:browser
 ```
+
+## Colours
+
+The colours come from the master palette shared with
+[areeb-ece.github.io](https://areeb-ece.github.io/) and PrereqFlow: `/design/tokens.css`,
+kept in the portfolio repo at `public/design/tokens.css`. The page loads it after
+`css/style.css`, so changing it there restyles all three sites. The values in
+`css/style.css` are a fallback for when the page is opened offline or from disk. The
+stylesheet comes from the same address, so the Content Security Policy needs no change.
 
 ## Limits
 

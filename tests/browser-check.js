@@ -39,6 +39,9 @@ const server = http.createServer((req, res) => {
     page.on("pageerror", e => errors.push(e.message));
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     page.on("request", r => { if (!r.url().startsWith(base) && !r.url().startsWith("blob:")) outside.push(r.url()); });
+    // The shared master palette lives on the portfolio site, not in this repo; locally the
+    // page falls back to the colours in css/style.css, so serve it as an empty stylesheet.
+    await page.route("**/design/tokens.css", r => r.fulfill({ status: 200, contentType: "text/css", body: "" }));
     await page.goto(base + "/");
 
     for (const file of [path.join(ROOT, "samples/saved-schedule-page.example.html"), mhtml]) {
