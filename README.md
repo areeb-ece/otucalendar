@@ -75,8 +75,9 @@ of this project also load directly.
   markup is never inserted into the page. Only course fields are read from it: code,
   title, CRN, schedule type, status, meeting dates, days, times, building and room.
   Your name, student number and any session tokens on the page are ignored.
-- **Nothing kept.** The schedule lives only in memory. Only the theme and your
-  appearance templates are stored, in `localStorage`.
+- **Nothing kept.** The schedule lives only in memory. Only your appearance templates
+  and the display settings (theme, background; shared with the other sites on
+  areeb-ece.github.io) are stored, in `localStorage`.
 - A saved schedule page contains your name and student number, so delete it once
   your calendar is made and sign out of MyOntarioTech.
 
@@ -158,7 +159,7 @@ js/core.js                      Banner normalization, Toronto time, templates, .
 js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
 js/helper.js                    the optional helper bookmark (shown in full on the page)
 js/app.js                       UI: import, appearance, options, week preview, downloads
-js/theme.js                     applies the saved theme before first paint
+js/theme.js                     offline fallback: applies the saved light/dark sheet
 js/sample.js                    fictional sample (same as samples/sample_schedule.json)
 samples/                        fictional sample schedule and a fictional saved page
 tests/*.test.js                 unit tests (node --test)
@@ -171,14 +172,24 @@ npm test                                      # unit tests, no dependencies
 npm i --no-save playwright && npm run test:browser
 ```
 
-## Colours
+## Themes and settings
 
-The colours come from the master palette shared with
-[areeb-ece.github.io](https://areeb-ece.github.io/) and PrereqFlow: `/design/tokens.css`,
-kept in the portfolio repo at `public/design/tokens.css`. The page loads it after
-`css/style.css`, so changing it there restyles all three sites. The values in
-`css/style.css` are a fallback for when the page is opened offline or from disk. The
-stylesheet comes from the same address, so the Content Security Policy needs no change.
+The gear icon at the top right opens the settings shared by
+[areeb-ece.github.io](https://areeb-ece.github.io/), PrereqFlow and OTU Calendar: a
+theme (Night, Paper, Void, Console, Amber and more, or follow the system), an accent
+colour, corner style, motion, and the night sky behind the week preview (number of
+stars, size, brightness, blur, colour, drift speed and direction, glow). Choices are
+saved in your browser and apply on all three sites.
+
+The colours, themes, settings panel and sky come from the portfolio repo's
+`public/design/` (`tokens.css`, `ui.css`, `theme.js`, `ui.js`), served at `/design/`.
+The page loads them after `css/style.css`, so changing them there restyles all three
+sites. They come from the same address, so the Content Security Policy needs no change.
+Opened offline or from disk, they can't load: the page falls back to the night/paper
+colours in `css/style.css` and a light/dark button.
+
+The browser check stubs those files out and tests the fallback. To test with the real
+ones: `DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser`.
 
 ## Limits
 

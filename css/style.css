@@ -48,7 +48,7 @@
   --card-hover: #FFFDF8;
   --ink: #2F2D36;
   --ink-2: #5D5967;
-  --ink-3: #8A8592;
+  --ink-3: #6E6A76;
   --ink-4: #B5B0B9;
   --rule: #DDD7CB;
   --rule-2: #E8E3D9;
@@ -70,6 +70,8 @@
   --ev-mix: 11%;
   color-scheme: light;
 }
+/* Every light theme from the master palette (/design/theme.js sets data-scheme). */
+:root[data-scheme="light"] { --ev-mix: 11%; }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -182,6 +184,13 @@ select.ctl { height: 32px; border: 1px solid var(--rule); border-radius: var(--r
   animation: aurora 38s ease-in-out infinite alternate;
 }
 @keyframes aurora { 0% { transform: translate(-4%, -3%) scale(1); } 50% { transform: translate(5%, 2%) scale(1.08); } 100% { transform: translate(-2%, 5%) scale(1.02); } }
+/* With the shared night sky (/design/ui.js, behind the stage) its haze replaces this glow,
+   and the week sheet lets the stars show through faintly. */
+.has-sky .stage::before { display: none; }
+.has-sky .wgrid { background: color-mix(in srgb, var(--sheet) 86%, transparent); }
+.has-sky .chips { background: color-mix(in srgb, var(--bg) 86%, transparent); }
+.has-sky .dh, .has-sky .corner { background: transparent; }
+.design-slot { display: contents; }
 .stagebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 10px 16px; border-bottom: 1px solid var(--rule-2); background: color-mix(in srgb, var(--sheet) 88%, transparent); backdrop-filter: blur(6px); }
 .weeknav { display: flex; align-items: center; gap: 6px; margin-left: auto; min-width: 0; }
 .wlabel { display: grid; text-align: center; min-width: 210px; line-height: 1.25; }
