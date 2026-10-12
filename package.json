@@ -1,0 +1,14 @@
+{
+  "name": "otucalendar",
+  "version": "2.0.0",
+  "description": "Turn an Ontario Tech course schedule into a calendar file (.ics), with a week-by-week preview. Runs entirely in the browser.",
+  "private": true,
+  "author": "areeb",
+  "homepage": "https://areeb-ece.github.io/otucalendar/",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "test:browser": "node tests/browser-check.js",
+    "serve": "python3 -m http.server 8080"
+  }
+}

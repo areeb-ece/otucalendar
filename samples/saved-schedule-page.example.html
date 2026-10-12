@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- FICTIONAL test page. It imitates the structure of a saved "View Registration
+     Information → Schedule Details" page so the importer can be tested without a
+     real account. Every course, name and number here is made up. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="synchronizer-token" content="00000000-fake-token">
+<title>View Registration Information</title>
+<script>document.write("scripts in an uploaded page must never run");</script>
+<link rel="stylesheet" href="https://example.invalid/never-loaded.css">
+</head>
+<body>
+<div id="header">Example Student (100000000) · Sign Out</div>
+<div class="lookup">
+  <label for="lookupFilter">Terms Open for Registration</label>
+  <input id="lookupFilter" type="hidden" value="202609">
+  <span>Fall 2026</span>
+</div>
+<img src="https://example.invalid/tracker.gif" alt="">
+<div id="scheduleDetailsViewLink">Schedule Details</div>
+<table id="table1">
+  <thead><tr>
+    <th data-property="courseTitle">Title</th><th data-property="subject">Subject</th><th data-property="courseNumber">Course</th>
+    <th data-property="sequenceNumber">Section</th><th data-property="courseReferenceNumber">CRN</th>
+    <th data-property="scheduleDescription">Schedule Type</th><th data-property="registrationStatusDescription">Status</th>
+  </tr></thead>
+  <tbody>
+    <tr><td data-property="courseTitle">Example Signals Course</td><td data-property="subject">DEMO</td><td data-property="courseNumber">2100U</td><td data-property="sequenceNumber">001</td><td data-property="courseReferenceNumber">90011</td><td data-property="scheduleDescription">Lecture</td><td data-property="registrationStatusDescription">**Web Registered**</td></tr>
+    <tr><td data-property="courseTitle">Example Signals Course</td><td data-property="subject">DEMO</td><td data-property="courseNumber">2100U</td><td data-property="sequenceNumber">101</td><td data-property="courseReferenceNumber">90012</td><td data-property="scheduleDescription">Laboratory</td><td data-property="registrationStatusDescription">**Web Registered**</td></tr>
+    <tr><td data-property="courseTitle">Example Statistics Course</td><td data-property="subject">DEMO</td><td data-property="courseNumber">2200U</td><td data-property="sequenceNumber">002</td><td data-property="courseReferenceNumber">90021</td><td data-property="scheduleDescription">Lecture</td><td data-property="registrationStatusDescription">**Web Registered**</td></tr>
+    <tr><td data-property="courseTitle">Example Dropped Course</td><td data-property="subject">DEMO</td><td data-property="courseNumber">2900U</td><td data-property="sequenceNumber">001</td><td data-property="courseReferenceNumber">90091</td><td data-property="scheduleDescription">Lecture</td><td data-property="registrationStatusDescription">Web Dropped</td></tr>
+  </tbody>
+</table>
+
+<div class="schedule-details">
+  <div class="list-view-course">
+    <h3><a href="#">Example Signals Course</a> | Demonstration DEMO 2100U Section 001 | Class Begin: 09/08/2026 | Class End: 12/07/2026</h3>
+    <div>CRN: 90011 · Schedule Type: Lecture · Instructor: Example Professor (Primary)</div>
+    <div class="listViewMeetingInformation">
+      <span>09/08/2026 -- 12/07/2026</span>
+      <div class="ui-pillbox"><ul>
+        <li title="Sunday">S</li><li class="ui-pillbox-selected" title="Monday">M</li><li title="Tuesday">T</li>
+        <li class="ui-pillbox-selected" title="Wednesday">W</li><li title="Thursday">T</li><li title="Friday">F</li><li title="Saturday">S</li>
+      </ul></div>
+      <span>02:10 PM - 03:30 PM</span> Type: Class Location: North Oshawa Building: Example Science Building Room: EX1350
+    </div>
+  </div>
+  <div class="list-view-course">
+    <h3><a href="#">Example Signals Course</a> | Demonstration DEMO 2100U Section 101 | Class Begin: 09/15/2026 | Class End: 12/01/2026</h3>
+    <div>CRN: 90012 · Schedule Type: Laboratory</div>
+    <div class="listViewMeetingInformation">
+      <span>09/15/2026 -- 12/01/2026</span>
+      <div class="ui-pillbox"><ul>
+        <li data-name="Sunday">S</li><li data-name="Monday">M</li><li data-name="Tuesday" aria-checked="true" class="ui-pillbox-selected">T</li>
+        <li data-name="Wednesday">W</li><li data-name="Thursday">T</li><li data-name="Friday">F</li><li data-name="Saturday">S</li>
+      </ul></div>
+      <span>08:10 AM - 11:00 AM</span> Type: Laboratory Building: EXL Room: EXL 2060
+    </div>
+  </div>
+  <div class="list-view-course">
+    <h3><a href="#">Example Statistics Course</a> | Demonstration DEMO 2200U Section 002 | Class Begin: 09/08/2026 | Class End: 12/07/2026</h3>
+    <div>CRN: 90021 · Schedule Type: Lecture</div>
+    <div class="listViewMeetingInformation">
+      <span>09/08/2026 -- 12/07/2026</span>
+      <div class="ui-pillbox"><ul>
+        <li>S</li><li>M</li><li class="ui-pillbox-selected">T</li><li>W</li><li class="ui-pillbox-selected">T</li><li>F</li><li>S</li>
+      </ul></div>
+      <span>11:10 AM - 12:30 PM</span> Type: Lecture Building: Example Hall (EXH) Room: 120
+    </div>
+    <div class="listViewMeetingInformation">
+      <span>09/14/2026 -- 12/04/2026</span>
+      <div class="ui-pillbox"><ul>
+        <li>S</li><li>M</li><li>T</li><li>W</li><li>T</li><li class="ui-pillbox-selected">F</li><li>S</li>
+      </ul></div>
+      <span>09:10 AM - 10:00 AM</span> Type: Tutorial Building: EXH Room: EXH 220
+    </div>
+  </div>
+  <div class="list-view-course">
+    <h3><a href="#">Example Dropped Course</a> | Demonstration DEMO 2900U Section 001</h3>
+    <div>CRN: 90091 · Registration Status: Web Dropped</div>
+    <div class="listViewMeetingInformation">
+      <span>09/08/2026 -- 12/07/2026</span>
+      <div class="ui-pillbox"><ul><li>S</li><li>M</li><li>T</li><li>W</li><li>T</li><li class="ui-pillbox-selected">F</li><li>S</li></ul></div>
+      <span>03:10 PM - 04:30 PM</span> Type: Lecture
+    </div>
+  </div>
+</div>
+</body>
+</html>
