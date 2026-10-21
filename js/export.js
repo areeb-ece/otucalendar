@@ -57,6 +57,11 @@ const rgbOf = c => {
 };
 /** t of a over b, as the preview tints a class block with color-mix(). */
 const mixRgb = (a, b, t) => { const x = rgbOf(a), y = rgbOf(b); return `rgb(${x.map((v, i) => Math.round(v * t + y[i] * (1 - t))).join(",")})`; };
+/** A session's shade of its course colour, mixed as shadeCss() mixes it in the preview. */
+const shadeRgb = (P, ci, si) => {
+  const [p, to] = SHADES[si % SHADES.length], c = P.c[ci % 8];
+  return to ? mixRgb(c, to === "--ink" ? P.ink : P.card, p / 100) : c;
+};
 
 // ── what goes in the picture ─────────────────────────────────────────────
 const imgCodes = () => [...new Set(enabled().map(([m]) => m.code))].sort((a, b) => (S.colors.get(a) || 0) - (S.colors.get(b) || 0));
@@ -82,7 +87,7 @@ function imageModel(courses) {
     const [m] = on[p.members[0]];
     let title = `${m.code} · ${m.kind}`;
     try { title = OC.renderEvent(m, S.style).title; } catch (e) { /* the template error is shown on the page */ }
-    return { m, mis: p.members.map(k => on[k][1]), p, set: p.set, title, keep: courses.has(m.code), color: S.colors.get(m.code) || 0 };
+    return { m, mis: p.members.map(k => on[k][1]), p, set: p.set, title, keep: courses.has(m.code), color: S.colors.get(m.code) || 0, shade: shadeOf(m) };
   });
   for (const x of pats) if (x.keep && !x.p.weekly) { x.tag = String.fromCharCode(65 + n % 26) + (n >= 26 ? Math.floor(n / 26) + 1 : ""); n++; }
   const byMeeting = new Map();
@@ -145,9 +150,10 @@ function drawWeekSheet(ops, P, x0, y0, g) {
   return H;
 }
 
-// A class block as the preview draws it: tinted by its course, a 3px edge in the course colour.
+// A class block as the preview draws it: tinted by its session's shade of the course colour,
+// with a 3px edge in that shade.
 function drawBlock(ops, P, x, y, w, h, b, g) {
-  const c = P.c[b.color % 8];
+  const c = shadeRgb(P, b.color, b.shade);
   ops.push({ t: "rect", x, y, w, h, r: 5, fill: mixRgb(c, P.card, P.mix) });
   if (b.set) drawSetPattern(ops, x + 3, y + 1, w - 4, h - 2, b.set, c);
   ops.push({ t: "rect", x, y, w, h, r: 5, stroke: c, sw: 1, a: 0.5 });
@@ -240,7 +246,7 @@ function drawWeekTable(ops, P, x0, y0, W, M, hiWeek) {
     ops.push({ t: "text", x: x0 + 10, y: y + 31, text: "Monday to " + (S.layout && S.layout.days === 7 ? "Sunday" : "Friday"), size: 10.5, color: P.ink3 });
     let ry = y + headH;
     for (const x of rows) {
-      const c = P.c[x.color % 8];
+      const c = shadeRgb(P, x.color, x.shade);
       ops.push({ t: "rect", x: x0 + 8, y: ry + 4, w: 20, h: 14, r: 3.5, fill: c, a: 0.3 });
       if (x.set) drawSetPattern(ops, x0 + 9, ry + 5, 18, 12, x.set, c, 0.6);
       ops.push({ t: "text", x: x0 + 18, y: ry + 15, text: x.tag, size: 10, weight: 700, color: P.ink, anchor: "middle", mono: true });
@@ -285,7 +291,7 @@ function buildImageSpec(o) {
   const M = imageModel(o.courses);
   if (!M.pats.length) throw new Error("Pick at least one course.");
   const termDays = M.pats.some(x => x.m.days.some(d => d >= 5)) ? 7 : 5;
-  const block = (x, s, e, extra) => ({ s, e, color: x.color, tag: x.tag, set: x.set, title: x.title, time: timeRange(s % 1440, e % 1440 || 1440), room: o.rooms ? x.p.rooms.join(" / ") : "", note: imgNote(x, M), ...extra });
+  const block = (x, s, e, extra) => ({ s, e, color: x.color, shade: x.shade, tag: x.tag, set: x.set, title: x.title, time: timeRange(s % 1440, e % 1440 || 1440), room: o.rooms ? x.p.rooms.join(" / ") : "", note: imgNote(x, M), ...extra });
   // the sheets to draw, each with its blocks
   let sheets;
   if (o.scope === "term") {
@@ -321,12 +327,15 @@ function buildImageSpec(o) {
   const titleOps = [];
   if (o.title) {
     const titles = new Map(M.pats.map(x => [x.m.code, x.m.title]));
-    // the course list wraps under the title, one swatch + code + name per course
-    const items = codes.map(code => ({ code, name: titles.get(code) || "", color: S.colors.get(code) || 0 }));
+    // the course list wraps under the title: a swatch per session (its shade), code, name
+    const items = codes.map(code => {
+      const shades = [...new Set(M.pats.filter(x => x.m.code === code).map(x => x.shade))].sort((a, b) => a - b);
+      return { code, name: titles.get(code) || "", color: S.colors.get(code) || 0, shades, sw: shades.length > 1 ? shades.length * 11 - 2 : 16 };
+    });
     const lines = [[]];
     let lx = PAD;
     for (const it of items) {
-      const w = 26 + OImage.measure(it.code, 11.5, 700, true) + 8 + Math.min(220, OImage.measure(it.name, 11.5)) + 22;
+      const w = it.sw + 10 + OImage.measure(it.code, 11.5, 700, true) + 8 + Math.min(220, OImage.measure(it.name, 11.5)) + 22;
       if (lx + w > W - PAD && lines[lines.length - 1].length) { lines.push([]); lx = PAD; }
       lines[lines.length - 1].push({ ...it, x: lx }); lx += w;
     }
@@ -350,11 +359,14 @@ function buildImageSpec(o) {
     lines.forEach((line, li) => {
       const ly = 88 + li * 20 + 14;
       for (const it of line) {
-        const c = P.c[it.color % 8];
-        titleOps.push({ t: "rect", x: it.x, y: ly - 9, w: 16, h: 11, r: 2, fill: mixRgb(c, P.card, P.mix) });
-        titleOps.push({ t: "rect", x: it.x, y: ly - 9, w: 3, h: 11, r: 1, fill: c });
-        titleOps.push({ t: "rect", x: it.x, y: ly - 9, w: 16, h: 11, r: 2, stroke: c, sw: 1, a: 0.55 });
-        titleOps.push({ t: "text", x: it.x + 24, y: ly, size: 11.5, color: P.ink2, parts: [{ text: it.code, weight: 700, color: P.ink, mono: true }, { text: "  " + OImage.fit(it.name, 220, 11.5) }] });
+        const sw = it.shades.length > 1 ? 9 : 16;
+        it.shades.forEach((si, j) => {
+          const c = shadeRgb(P, it.color, si), sx = it.x + j * 11;
+          titleOps.push({ t: "rect", x: sx, y: ly - 9, w: sw, h: 11, r: 2, fill: mixRgb(c, P.card, P.mix) });
+          titleOps.push({ t: "rect", x: sx, y: ly - 9, w: 3, h: 11, r: 1, fill: c });
+          titleOps.push({ t: "rect", x: sx, y: ly - 9, w: sw, h: 11, r: 2, stroke: c, sw: 1, a: 0.55 });
+        });
+        titleOps.push({ t: "text", x: it.x + it.sw + 8, y: ly, size: 11.5, color: P.ink2, parts: [{ text: it.code, weight: 700, color: P.ink, mono: true }, { text: "  " + OImage.fit(it.name, 220, 11.5) }] });
       }
     });
     // credit badge, top right, as PrereqFlow's

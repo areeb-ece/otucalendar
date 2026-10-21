@@ -173,6 +173,11 @@ const server = http.createServer((req, res) => {
     assert.deepEqual(after, { count: p.count - 4, rw: "2027-02-15", weekly: 4, ev: 0 }, "the four lectures listed in W6 are gone");
     assert.match(await page.textContent("#rwBar"), /Reading week: W6, Feb 15–19/);
     assert.equal(await page.$$eval("#track .ev.bw1, #track .ev.bw2", e => e.length), 12, "bi-weekly classes are patterned");
+    // each course its colour, each of its sessions a shade of it: lecture the colour, lab the next shade
+    const shades = await page.evaluate(() => [...new Set(S.meetings.map(m => `${m.code} ${m.kind} ${colorOf(m)}`))].sort());
+    assert.equal(shades.length, 4, "a shade per session");
+    assert.ok(shades.every(s => / Lecture var\(--c\d\)$/.test(s) || / Laboratory color-mix\(/.test(s)), shades.join("; "));
+    assert.equal(await page.$$eval("#legend .sws .sw", e => e.length), 4, "the legend has a swatch per session");
     await page.click("#btnImage");
     await page.waitForSelector("#imageDlg:not([hidden])");
     await page.click("#imgScope [data-v=term]");

@@ -53,7 +53,7 @@ const kb = n => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
 // ── state ────────────────────────────────────────────────────────────────
 const S = {
   payload: null, info: null, term: "", fallback: { start: null, end: null },
-  meetings: [], warnings: [], courseCount: 0, off: new Set(), colors: new Map(),
+  meetings: [], warnings: [], courseCount: 0, off: new Set(), colors: new Map(), shades: new Map(),
   style: loadStyle(), reminder: null, calName: "Ontario Tech Courses", skip: new Set(),
   ics: "", count: 0, buildErr: "", templateErr: "", parsed: null, uidMeeting: new Map(),
   weeks: [], week: 0, view: "weeks", pasteHtml: null, pasteText: "",
@@ -71,7 +71,18 @@ function loadStyle() {
 function saveStyle() { try { localStorage.setItem(STYLE_KEY, JSON.stringify(S.style)); } catch (e) {} }
 const todayDay = () => OC.localOf(Date.now()).day;
 const enabled = () => S.meetings.map((m, i) => [m, i]).filter(([, i]) => !S.off.has(i));
-const colorOf = m => `var(--c${(S.colors.get(m.code) || 0) % 8})`;
+// Each course has its colour, and each of its sessions (lecture, lab, tutorial…) a shade of
+// it: the first the colour itself, the next ones mixed toward the card or the ink, so they
+// read darker and lighter in every theme without losing the hue. The image export mixes
+// the same (shadeRgb).
+const SHADES = [[100, ""], [62, "--card"], [66, "--ink"], [80, "--card"], [82, "--ink"]];
+const sessionKey = m => `${m.code}|${m.kind}|${m.crn}`;
+const shadeCss = (ci, si) => {
+  const [p, to] = SHADES[si % SHADES.length];
+  return to ? `color-mix(in srgb, var(--c${ci % 8}) ${p}%, var(${to}))` : `var(--c${ci % 8})`;
+};
+const shadeOf = m => S.shades.get(sessionKey(m)) || 0;
+const colorOf = m => shadeCss(S.colors.get(m.code) || 0, shadeOf(m));
 
 // ── import ───────────────────────────────────────────────────────────────
 // Banner's pages are full of inline styles and stylesheet links. Nothing in a DOMParser document
@@ -127,6 +138,15 @@ function normalizeNow() {
   S.warnings = r.warnings; S.courseCount = r.courseCount; S.off = new Set();
   if (!S.term) S.term = (S.meetings.find(m => m.term) || {}).term || "";
   S.colors = new Map([...new Set(S.meetings.map(m => m.code))].sort().map((c, i) => [c, i]));
+  // shades in the meetings' order: lectures first, then labs, tutorials, seminars
+  S.shades = new Map();
+  const per = new Map();
+  for (const m of S.meetings) {
+    const k = sessionKey(m);
+    if (S.shades.has(k)) continue;
+    S.shades.set(k, per.get(m.code) || 0);
+    per.set(m.code, S.shades.get(k) + 1);
+  }
   $("#fallback").hidden = !S.warnings.some(w => w.includes("missing meeting dates")) && S.fallback.start === null;
 }
 
@@ -211,7 +231,14 @@ function renderLegend() {
   if (!S.payload) return;
   const titles = new Map();
   for (const m of S.meetings) if (!titles.has(m.code)) titles.set(m.code, m.title);
-  for (const [code, i] of S.colors) el.append(h("span", { class: "k", vars: { "--cc": `var(--c${i % 8})` }, title: titles.get(code) || "" }, h("span", { class: "sw" }), h("b", { text: code })));
+  // one swatch per session, in its shade of the course colour
+  const sessions = new Map([...S.colors.keys()].map(c => [c, new Map()]));
+  for (const m of S.meetings) {
+    const list = sessions.get(m.code), k = sessionKey(m);
+    if (!list.has(k)) list.set(k, { cc: colorOf(m), label: `${m.code} ${m.kind || "Class"}${m.crn ? ` · CRN ${m.crn}` : ""}` });
+  }
+  for (const [code, list] of sessions) el.append(h("span", { class: "k", title: titles.get(code) || "" },
+    h("span", { class: "sws" }, ...[...list.values()].map(x => h("span", { class: "sw", vars: { "--cc": x.cc }, title: x.label }))), h("b", { text: code })));
   // The bi-weekly sets: striped meets in one set of weeks, dotted in the other.
   for (let set = 1; S.pat && set <= S.pat.sets; set++) {
     const cls = S.pat.classes.filter(c => c.set === set);
@@ -638,7 +665,7 @@ function hideToast() {
 function startOver() {
   S.payload = null; S.info = null; S.meetings = []; S.warnings = []; S.off = new Set(); S.skip = new Set();
   S.readingWeek = null; S.rwAnswered = false; S.rwPick = null;
-  S.ics = ""; S.count = 0; S.parsed = { events: [], calendar: {} }; S.weeks = []; S.layout = null; S.term = ""; S.colors = new Map();
+  S.ics = ""; S.count = 0; S.parsed = { events: [], calendar: {} }; S.weeks = []; S.layout = null; S.term = ""; S.colors = new Map(); S.shades = new Map();
   $("#pasteText").value = ""; S.pasteHtml = null; $("#oSkip").value = "";
   render(); closePop();
   open("#welcomeDlg");
