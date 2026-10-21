@@ -149,6 +149,9 @@ input[type="date"].sd-input { font-family: var(--font-mono); }
 .legend .sw { width: 14px; height: 10px; border: 1px solid color-mix(in srgb, var(--cc) 55%, transparent); border-left: 3px solid var(--cc); border-radius: 2px; background: color-mix(in srgb, var(--cc) var(--ev-mix), var(--card)); }
 .legend .k b { font: var(--fw-text) var(--fs-1) var(--font-mono); color: var(--ink-2); }
 .legend .bwk .sw { border-left-width: 1px; background-color: transparent; }
+/* a course's sessions, one swatch each in its shade */
+.legend .sws { display: inline-flex; gap: 2px; }
+.legend .sws .sw:not(:only-child) { width: 9px; }
 
 /* week chips: a bar per day, the selected week in the accent */
 /* reading week: the question (detected or not) and, once answered, one line */
