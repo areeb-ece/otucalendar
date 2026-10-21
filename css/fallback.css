@@ -116,7 +116,6 @@
 
   /* Motion. Short, and out of the way: UI 120–260ms, ease-out for anything that enters. */
   --ease-out: cubic-bezier(.23, 1, .32, 1);
-  --ease-in-out: cubic-bezier(.77, 0, .175, 1);
   --ease-drawer: cubic-bezier(.32, .72, 0, 1);
   --dur-1: 120ms;                               /* press, hover colour */
   --dur-2: 180ms;                               /* small things moving */
@@ -194,7 +193,8 @@
 .sd-seg { display: inline-flex; flex-wrap: wrap; align-items: center; min-height: var(--ctl-h); border: 1px solid var(--rule); border-radius: var(--r-sm); padding: 2px; background: var(--field); gap: 2px; }
 .sd-seg button { min-width: 30px; height: calc(var(--ctl-h) - 6px); border: 0; border-radius: calc(var(--r-sm) - 2px); background: transparent; padding: 0 10px; cursor: pointer; color: var(--ink-2); font: var(--fw-ui) var(--fs-1)/1 var(--font-text); white-space: nowrap; transition: background-color var(--dur-1), color var(--dur-1); }
 .sd-seg button:is([aria-pressed="true"], [aria-checked="true"]) { background: var(--accent); color: var(--accent-ink); font-weight: var(--fw-strong); }
-@media (hover: hover) { .sd-seg button:hover:not([aria-pressed="true"], [aria-checked="true"]) { color: var(--ink); background: var(--hover); } }
+@media (hover: hover) { .sd-seg button:hover:not([aria-pressed="true"], [aria-checked="true"], :disabled) { color: var(--ink); background: var(--hover); } }
+.sd-seg button:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ── fields: label above, hint or error below ── */
 .sd-field { display: grid; gap: 6px; min-width: 0; }
@@ -255,19 +255,16 @@
 :is(.sd-table, .sd-prose table) :is(th, td):is([align="right"], .sd-num) { text-align: right; }
 :is(.sd-table, .sd-prose table) :is(th, td)[align="center"] { text-align: center; }
 :is(.sd-table, .sd-prose table) td:is([align="right"], .sd-num) { font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sd-table.sd-sticky thead th { position: sticky; top: 0; z-index: 1; background: var(--sheet); }
 .sd-table tbody tr[aria-selected="true"] td { background: var(--tint); }
 /* the band reaches a little past the text on both sides, so nothing sits on its edge */
 .sd-table tbody tr[aria-selected="true"] td:first-child { box-shadow: calc(var(--sp-2) * -1) 0 0 var(--tint); }
 .sd-table tbody tr[aria-selected="true"] td:last-child { box-shadow: var(--sp-2) 0 0 var(--tint); }
-.sd-table .sd-none { color: var(--ink-3); }
 
-/* ── surfaces and cards ── */
-.sd-surface { border-radius: var(--r-lg); background: var(--sheet); color: var(--ink); padding: var(--sp-5); }
+/* ── cards ── */
 /* The family's one shape detail: the pin-1 corner of a chip package, cut where the browser
    can (corner-shape); elsewhere the corner stays round. */
 @supports (corner-shape: bevel) {
-  .sd-surface, .sd-pin1 { border-top-right-radius: calc(var(--r-lg) * 2.5); corner-top-right-shape: bevel; }
+  .sd-pin1 { border-top-right-radius: calc(var(--r-lg) * 2.5); corner-top-right-shape: bevel; }
   .sd-card { border-top-right-radius: calc(var(--r) * 2); corner-top-right-shape: bevel; }
 }
 .sd-card { display: block; min-width: 0; padding: var(--sp-4); border: 1px solid var(--rule-2); border-radius: var(--r); background: var(--card); color: var(--ink); text-decoration: none; }
@@ -279,7 +276,6 @@
 
 /* ── navigation: a list of links or buttons; aria-current marks where you are ── */
 .sd-nav { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.sd-nav.sd-across { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
 .sd-nav li { display: contents; }
 .sd-nav :is(a, button) {
   display: flex; align-items: center; gap: var(--sp-2); min-height: var(--ctl-h); padding: 6px 10px; margin: 0; border: 0; border-radius: var(--r-sm);
@@ -292,8 +288,9 @@
 /* ── app bar and wordmark ── */
 .sd-bar { display: flex; align-items: center; gap: var(--sp-3); min-height: 52px; padding: var(--sp-2) var(--sp-4); background: var(--sheet); color: var(--ink); }
 .sd-bar .sd-grow { flex: 1; }
-.sd-wordmark { display: inline-flex; align-items: center; min-height: var(--ctl-h-sm); white-space: nowrap; color: var(--ink); text-decoration: none; font: var(--fw-head) var(--fs-2)/1.1 var(--font-mono); letter-spacing: var(--tr-mark); }
+.sd-wordmark { display: inline-flex; align-items: center; min-height: var(--ctl-h-sm); white-space: nowrap; color: var(--ink); text-decoration: none; font: var(--fw-head) var(--fs-3)/1.1 var(--font-mono); letter-spacing: var(--tr-mark); }
 .sd-wordmark span { color: var(--accent); font-weight: var(--fw-text); }
+a.sd-wordmark:hover { text-decoration: none; }
 
 /* ── tabs (role=tablist / role=tab, aria-selected on the open one) ── */
 .sd-tabs { display: flex; gap: var(--sp-1); overflow-x: auto; scrollbar-width: none; }
