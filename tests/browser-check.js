@@ -45,6 +45,10 @@ const server = http.createServer((req, res) => {
     page.on("pageerror", e => errors.push(e.message));
     page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
     page.on("request", r => { if (!r.url().startsWith(base) && !r.url().startsWith("blob:")) outside.push(r.url()); });
+    await page.addInitScript(() => {
+      window.__csp = [];
+      document.addEventListener("securitypolicyviolation", e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+    });
     const DESIGN = process.env.DESIGN_DIR && path.resolve(process.env.DESIGN_DIR);
     await page.route("**/design/*", r => {
       const name = path.basename(new URL(r.request().url()).pathname);
@@ -106,7 +110,60 @@ const server = http.createServer((req, res) => {
     assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 75);
     console.log("ok preview, skip and download");
 
+    // image export, with the fictional sample's alternating lab and a skipped week
+    await page.click("#viewSeg [data-view=weeks]");
+    await page.click("#btnHome");
+    await page.click("#welcomeDlg [data-action=sample]");
+    await page.click("#reportDlg footer .sd-primary");
+    await page.fill("#oSkip", "2026-10-12..2026-10-16");
+    await page.waitForFunction(() => S.skip.size === 5);
+    await page.click("#btnImage");
+    await page.waitForSelector("#imageDlg:not([hidden])");
+    const scopes = await page.$$eval("#imgScope button", b => b.map(x => x.textContent));
+    assert.equal(scopes[0], "Whole term");
+    assert.match(scopes[1], /^Week \d+$/);
+    assert.equal(scopes[2], "All 14 weeks");
+    assert.equal(await page.$$eval("#imgCourses input", i => i.length), 4, "a checkbox per course");
+    assert.match(await page.textContent("#imgDims"), /^[\d,]+ × [\d,]+ px$/);
+    // The week table gives the alternating lab's exact dates: W2, W4 … W12, struck out when skipped.
+    const spec = await page.evaluate(() => buildImageSpec(imageOptions()).ops.filter(o => o.t === "text").flatMap(o => (o.parts ? o.parts.map(p => p.text) : [o.text])));
+    for (const t of ["alternate weeks, W2–W12", "W14", "Skipped (no classes)", "12–16", "made by areeb · ", "areeb-ece.github.io/otucalendar"]) assert.ok(spec.includes(t), `image has "${t}"`);
+    const saveImage = async () => {
+      const dl = page.waitForEvent("download");
+      await page.click("#imgGo");
+      const file = await dl;
+      return { name: file.suggestedFilename(), data: fs.readFileSync(await file.path()) };
+    };
+    const png = await saveImage();
+    assert.equal(png.name, "ontario-tech-202609-schedule.png");
+    assert.equal(png.data.subarray(1, 4).toString(), "PNG");
+    assert.equal(png.data.readUInt32BE(16), 974 * 3, "3× by default");
+    await page.click("#btnImage");
+    await page.click("#imgScope [data-v=all]");
+    await page.click("#imgFormat [data-v=svg]");
+    assert.ok(await page.$eval("#imgScale button", b => b.disabled), "no resolution for SVG");
+    const svg = await saveImage();
+    assert.equal(svg.name, "ontario-tech-202609-all-weeks.svg");
+    assert.match(svg.data.toString(), /^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"[\s\S]*W14[\s\S]*made by areeb[\s\S]*<\/svg>$/);
+    await page.click("#btnImage");
+    await page.click("#imgCourses input");
+    await page.click("#imgFormat [data-v=png]");
+    await page.click("#imgScope [data-v=week]");
+    const one = await saveImage();
+    assert.match(one.name, /^ontario-tech-202609-week-\d+\.png$/);
+    console.log(`ok image export: ${png.name} (${png.data.length} bytes), ${svg.name}, ${one.name}`);
+
+    // "by areeb" goes to the portfolio; the phone layout still has room for the image button
+    assert.equal(await page.getAttribute(".brandline .by", "href"), "https://areeb-ece.github.io/");
+    assert.equal(await page.getAttribute(".brandline .by", "target"), null);
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await page.isVisible("#btnImage"));
+    const wide = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+    assert.ok(wide[0] <= wide[1] + 1, `phone: no sideways scroll (${wide})`);
+    console.log("ok portfolio link, phone layout");
+
     assert.deepEqual(outside, [], "the page must not make network requests outside its own files");
+    assert.deepEqual(await page.evaluate(() => window.__csp), [], "no Content Security Policy violations");
     assert.deepEqual(errors, []);
     console.log("ok no outside requests, no errors");
   } finally {

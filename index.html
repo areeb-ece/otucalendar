@@ -31,7 +31,7 @@
 <div class="app" id="app">
   <header class="sd-bar bar">
     <div class="brand">
-      <div class="brandline"><h1 class="sd-wordmark">OTU<span>/</span>CALENDAR</h1><a class="by" href="https://areeb-ece.github.io/otucalendar/" target="_blank" rel="noopener noreferrer">by areeb</a></div>
+      <div class="brandline"><h1 class="sd-wordmark">OTU<span>/</span>CALENDAR</h1><a class="by" href="https://areeb-ece.github.io/" rel="noopener noreferrer">by areeb</a></div>
       <p class="sheetinfo" id="sheetInfo">No schedule loaded</p>
     </div>
     <span class="sd-grow"></span>
@@ -39,6 +39,7 @@
     <div class="actions" role="group" aria-label="Calendar file">
       <button class="sd-btn sd-primary" id="btnDownload" type="button" disabled>Download .ics</button>
       <button class="sd-btn" id="btnSaveJson" type="button" title="Save the parsed meetings as editable JSON, to reopen here later without signing in" disabled>Save .json</button>
+      <button class="sd-btn" id="btnImage" type="button" title="Save the schedule as a picture (PNG or SVG)" disabled><span class="lg">Save image</span><span class="sm">Image</span></button>
       <button class="sd-btn" id="btnImport" type="button">Import</button>
     </div>
     <div class="util">
@@ -214,7 +215,7 @@
       <span>Explore the preview with made-up courses first.</span>
     </div>
     <div class="wfoot">
-      <span class="by">Made by areeb <i>· not an official Ontario Tech app; check your schedule for changes</i></span>
+      <span class="by"><a href="https://areeb-ece.github.io/" rel="noopener noreferrer">Made by areeb</a> <i>· not an official Ontario Tech app; check your schedule for changes</i></span>
       <a href="https://areeb-ece.github.io/otucalendar/" target="_blank" rel="noopener noreferrer">areeb-ece.github.io/otucalendar</a>
     </div>
   </div>
@@ -292,6 +293,37 @@
   </div>
 </div>
 
+<!-- Image export -->
+<div class="overlay" id="imageDlg" hidden>
+  <div class="sd-dialog dlg imgdlg" role="dialog" aria-modal="true" aria-labelledby="imageTitle">
+    <header><h2 id="imageTitle">Save the schedule as an image</h2><button class="sd-x" type="button" data-close aria-label="Close">×</button></header>
+    <div class="sd-body">
+      <div class="sd-field">
+        <span class="sd-label" id="imgScopeL">Show</span>
+        <div class="sd-seg wide" id="imgScope" role="radiogroup" aria-labelledby="imgScopeL"></div>
+        <p class="sd-hint" id="imgScopeHint"></p>
+      </div>
+      <fieldset class="imgset">
+        <legend class="sd-label">Courses</legend>
+        <div class="imgcourses" id="imgCourses"></div>
+      </fieldset>
+      <fieldset class="imgset">
+        <legend class="sd-label">Include</legend>
+        <label class="sd-check"><input type="checkbox" id="imgTitle" checked><span>Title block and course list <span class="sd-hint">(the credit line is always there)</span></span></label>
+        <label class="sd-check"><input type="checkbox" id="imgWeeks" checked>Week table: every week's dates, and the days each alternating or part-term class meets</label>
+        <label class="sd-check"><input type="checkbox" id="imgRooms" checked>Rooms on the classes</label>
+      </fieldset>
+      <div class="two">
+        <div class="sd-field"><span class="sd-label" id="imgFormatL">Format</span><div class="sd-seg" id="imgFormat" role="radiogroup" aria-labelledby="imgFormatL"></div></div>
+        <div class="sd-field"><span class="sd-label" id="imgScaleL">Resolution (PNG)</span><div class="sd-seg" id="imgScale" role="radiogroup" aria-labelledby="imgScaleL"></div></div>
+      </div>
+      <div class="sd-field"><span class="sd-label" id="imgThemeL">Sheet</span><div class="sd-seg" id="imgTheme" role="radiogroup" aria-labelledby="imgThemeL"></div></div>
+      <p class="dims" id="imgDims" aria-live="polite"></p>
+    </div>
+    <footer><span class="status" id="imgStatus" aria-live="polite"></span><span class="spacer"></span><button class="sd-btn sd-ghost" type="button" data-close>Cancel</button><button class="sd-btn sd-primary" type="button" id="imgGo" data-autofocus>Save image</button></footer>
+  </div>
+</div>
+
 <div class="dropveil" id="dropVeil" hidden><div class="sd-drop" data-over><b>Drop to import</b><span>Read in this tab; nothing is uploaded.</span></div></div>
 <div class="sd-toast toast" id="toast" role="status" hidden></div>
 
@@ -300,6 +332,8 @@
 <script src="js/importer.js"></script>
 <script src="js/helper.js"></script>
 <script src="js/sample.js"></script>
+<script src="js/image.js"></script>
 <script src="js/app.js"></script>
+<script src="js/export.js"></script>
 </body>
 </html>

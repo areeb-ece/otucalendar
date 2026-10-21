@@ -185,6 +185,7 @@ function render() {
   $("#empty").hidden = has;
   $("#btnDownload").disabled = !S.ics;
   $("#btnSaveJson").disabled = !has || !S.meetings.length;
+  $("#btnImage").disabled = !S.ics;
   $("#sheetInfo").textContent = has
     ? [S.term ? `${S.term}${termName(S.term) ? " · " + termName(S.term) : ""}` : "Term unknown", plural(S.colors.size, "course"), plural(S.count, "class", "classes")].join(" · ")
     : "No schedule loaded";
