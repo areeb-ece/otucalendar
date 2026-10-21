@@ -3,7 +3,7 @@
  *
  *  - a saved "My course schedule" page (.html, or .mhtml single file)
  *  - text copied from that page (select all → copy → paste)
- *  - JSON: from the helper snippet, Banner's own responses, or a saved schedule
+ *  - JSON: a schedule saved here (Save .json), or Banner's own responses
  *
  * Uploaded HTML is parsed with DOMParser into an inert document: its scripts never
  * run, nothing it references is fetched, and none of it is inserted into this page.

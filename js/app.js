@@ -58,8 +58,11 @@ const S = {
   ics: "", count: 0, buildErr: "", templateErr: "", parsed: null, uidMeeting: new Map(),
   weeks: [], week: 0, view: "weeks", pasteHtml: null, pasteText: "",
   // reading week: the Monday of the confirmed one, and whether the question was answered
-  readingWeek: null, rwAnswered: false, rwPick: null,
+  readingWeek: null, rwAnswered: false, rwPick: null, rwFixed: false,
 };
+
+// classes entered by hand, kept to edit after the calendar is made
+const MANUAL = [];
 
 function loadStyle() {
   try {
@@ -109,7 +112,7 @@ function importFrom(src, { fileName = "", forceHtml = false, statusEl = null } =
     const saved = /registrationHistory|StudentRegistrationSsb/i.test(src.slice(0, 200000));
     status(saved
       ? "This page has no courses in it. Save it while your courses are on screen (Schedule Details), as \"Webpage, Complete\" or \"Single File\", not \"HTML only\". Or try the Paste tab."
-      : "No Ontario Tech courses found. Use the Schedule Details page from My course schedule, or a .json from the helper.", true);
+      : "No Ontario Tech courses found. Use the Schedule Details page from My course schedule, a .json saved here, or enter your classes by hand.", true);
     return false;
   }
   status("");
@@ -121,9 +124,16 @@ function loadPayload(payload, info) {
   S.payload = payload; S.info = info; S.term = info.term || "";
   S.fallback = { start: null, end: null };
   S.skip = new Set(); $("#oSkip").value = ""; $("#oErr").textContent = "";
-  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null;
+  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null; S.rwFixed = false;
   $("#fbStart").value = ""; $("#fbEnd").value = "";
   normalizeNow();
+  // a reading week given with the classes (by hand, or a .json saved from them) is settled
+  const given = S.meetings.find(m => m.breakDays);
+  if (given) {
+    const [a] = given.breakDays;
+    S.readingWeek = a - OC.weekday(a) + (OC.weekday(a) > 4 ? 7 : 0);
+    S.rwAnswered = true; S.rwFixed = true;
+  }
   S.week = -1;
   rebuild();
   closeAll();
@@ -331,7 +341,7 @@ function renderNotes() {
   const items = [];
   for (const n of (S.info && S.info.notes) || []) items.push([n, ""]);
   for (const w of S.warnings) items.push([w, "w"]);
-  if (S.info && S.info.termSource === "dates") items.push([`The term code wasn't on the page, so ${S.term} was guessed from the class dates. It only appears in {Term} and the event IDs.`, ""]);
+  if (S.info && S.info.termSource === "dates" && S.info.kind !== "manual") items.push([`The term code wasn't on the page, so ${S.term} was guessed from the class dates. It only appears in {Term} and the event IDs.`, ""]);
   const missing = new Map();
   if (!S.templateErr) for (const [m] of enabled()) { try { for (const f of OC.renderEvent(m, S.style).missing) missing.set(f, (missing.get(f) || 0) + 1); } catch (e) {} }
   for (const [f, n] of missing) items.push([`{${f}} is empty for ${plural(n, "meeting")}; that part of the text is left out.`, "w"]);
@@ -385,6 +395,14 @@ function renderReadingWeek() {
   if (!S.payload || S.weeks.length < 6) return;
   const guess = rwGuess();
   const btn = (text, run, primary) => h("button", { type: "button", class: `sd-btn sd-small${primary ? " sd-primary" : " sd-ghost"}`, text, onclick: run });
+  if (S.rwFixed) {
+    const n = weekNo(S.readingWeek);
+    bar.append(h("p", {}, h("b", { text: n ? `Reading week: W${n}, ${classWeek(S.readingWeek)}.` : "Reading week is outside these classes' dates." }),
+      " Entered with your classes: nothing meets that week, and classes every 2 weeks or more skip over it."),
+      MANUAL.length ? h("div", { class: "acts" }, btn("Edit classes", () => openImport("manual"))) : null);
+    bar.className = "rwbar done"; bar.hidden = false;
+    return;
+  }
   if (S.readingWeek !== null) {
     const n = weekNo(S.readingWeek);
     bar.append(h("p", {}, h("b", { text: `Reading week: W${n}, ${classWeek(S.readingWeek)}.` }), " Every class that week is left out of the calendar."),
@@ -612,13 +630,13 @@ async function copy(text, msg) {
 // ── report ───────────────────────────────────────────────────────────────
 function showReport() {
   const body = $("#reportBody");
-  const kind = { html: "saved page", mhtml: "saved page (single file)", text: "pasted text", paste: "pasted page", json: "JSON file", sample: "fictional sample" }[S.info.kind] || "import";
+  const kind = { html: "saved page", mhtml: "saved page (single file)", text: "pasted text", paste: "pasted page", json: "JSON file", sample: "fictional sample", manual: "classes entered by hand" }[S.info.kind] || "import";
   const items = [...(S.info.notes || []).map(n => [n, ""]), ...S.warnings.map(w => [w, "w"])];
   body.replaceChildren(...[
     h("p", { class: "rsum" }, "Found ", h("b", { text: plural(S.courseCount, "course section") }), " with ", h("b", { text: plural(S.meetings.length, "meeting pattern") }), " → ", h("b", { text: plural(S.count, "class", "classes") }), "."),
     h("p", { class: "help", text: `From the ${kind}. Term ${S.term || "unknown"}${termName(S.term) ? ` (${termName(S.term)})` : ""}. Check the preview against your schedule before importing it anywhere.` }),
     items.length ? h("div", { class: "rsec" }, h("h3", { text: "Notes" }), h("ul", {}, ...items.map(([t, c]) => h("li", { class: c, text: t })))) : null,
-    S.meetings.length ? null : h("p", { class: "sd-callout sd-warn", text: "No timed meetings were found. Online/asynchronous courses have no class times. If your courses do meet, try the helper or the saved page." }),
+    S.meetings.length ? null : h("p", { class: "sd-callout sd-warn", text: "No timed meetings were found. Online/asynchronous courses have no class times. If your courses do meet, try the saved page, or enter them by hand." }),
   ].filter(Boolean));
   open("#reportDlg");
 }
@@ -642,7 +660,8 @@ function setTab(tab) {
   $$("#importDlg .tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.tab === tab)));
   $$("#importDlg [data-pane]").forEach(p => (p.hidden = p.dataset.pane !== tab));
   $("#btnPasteImport").hidden = tab !== "paste";
-  $("#btnCopyHelper").hidden = tab !== "helper";
+  $("#btnManualImport").hidden = tab !== "manual";
+  if (tab === "manual") { renderManual(); setTimeout(() => $("#mCode").focus(), 30); }
   if (tab === "paste") setTimeout(() => $("#pasteText").focus(), 30);
 }
 let toastTimer = 0;
@@ -664,7 +683,7 @@ function hideToast() {
 
 function startOver() {
   S.payload = null; S.info = null; S.meetings = []; S.warnings = []; S.off = new Set(); S.skip = new Set();
-  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null;
+  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null; S.rwFixed = false;
   S.ics = ""; S.count = 0; S.parsed = { events: [], calendar: {} }; S.weeks = []; S.layout = null; S.term = ""; S.colors = new Map(); S.shades = new Map();
   $("#pasteText").value = ""; S.pasteHtml = null; $("#oSkip").value = "";
   render(); closePop();
@@ -715,11 +734,63 @@ $("#btnPasteImport").addEventListener("click", () => {
   importFrom(text, { statusEl: st });
 });
 
-// helper
-$("#helperCode").textContent = OH.SOURCE;
-$("#bookmarklet").href = OH.bookmarklet();
-$("#bookmarklet").addEventListener("click", e => { e.preventDefault(); toast("Drag this link to your bookmarks bar, then click it on your schedule page.", null, 3600); });
-$("#btnCopyHelper").addEventListener("click", () => copy(OH.SOURCE, "Copied the helper code"));
+// by hand: a list of classes (MANUAL), made into the same course records an import gives
+const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const mins = t => { const [hh, mm] = t.split(":").map(Number); return hh * 60 + mm; };
+$("#mDays").append(...DAY_KEYS.map(d => h("label", { class: "sd-check" }, h("input", { type: "checkbox", value: d }), d)));
+function renderManual() {
+  const el = $("#manualList");
+  el.replaceChildren(...MANUAL.map((c, i) => h("div", { class: "mrow" },
+    h("span", {}),
+    h("div", { class: "mt" }, `${c.code} · ${c.kind}`, c.title ? h("i", { text: c.title }) : null),
+    h("div", { class: "md" },
+      h("span", { text: `${c.days.join("/")} ${timeRange(mins(c.start), mins(c.end))}${c.every > 1 ? ` · every ${c.every} weeks` : ""}` }),
+      h("span", { text: `${dayShort(OC.parseDate(c.from))} – ${dayShort(OC.parseDate(c.to))}${c.room ? " · " + c.room : ""}` })),
+    h("div", { class: "mx" }, h("button", { class: "sd-btn sd-ghost sd-small", type: "button", "aria-label": `Remove ${c.code} ${c.kind}`, onclick: () => { MANUAL.splice(i, 1); renderManual(); } }, "Remove")))));
+  $("#btnManualImport").disabled = !MANUAL.length;
+  $("#btnManualImport").textContent = MANUAL.length ? `Make calendar (${plural(MANUAL.length, "class", "classes")})` : "Make calendar";
+}
+$("#manualForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const v = id => $(id).value.trim(), st = $("#manualStatus");
+  const c = { code: v("#mCode").replace(/\s+/g, " ").toUpperCase(), title: v("#mTitle"), kind: v("#mKind") || "Class", room: v("#mRoom"),
+    days: $$("#mDays input:checked").map(x => x.value), start: v("#mStart"), end: v("#mEnd"), from: v("#mFrom"), to: v("#mTo"), every: +$("#mEvery").value };
+  const problem = !c.code ? ["#mCode", "Give the course a code, like MATH 1010U."]
+    : !c.days.length ? ["#mDays input", "Pick the days it meets."]
+    : !c.start || !c.end ? ["#mStart", "Give its start and end times."]
+    : c.end <= c.start ? ["#mEnd", "It has to end after it starts."]
+    : !c.from || !c.to ? ["#mFrom", "Give the dates of its first and last classes."]
+    : c.to < c.from ? ["#mTo", "The last class has to be on or after the first."]
+    : (Date.parse(c.to) - Date.parse(c.from)) / 864e5 > 400 ? ["#mTo", "That's over 400 days; one term at a time."] : null;
+  if (problem) { st.textContent = problem[1]; st.classList.add("err"); $(problem[0]).focus(); return; }
+  MANUAL.push(c);
+  st.classList.remove("err");
+  st.textContent = `Added ${c.code} ${c.kind}. Add another, or make the calendar.`;
+  // keep the dates and course for the next one (a lab of the same course, say); clear the rest
+  for (const id of ["#mRoom", "#mStart", "#mEnd"]) $(id).value = "";
+  $$("#mDays input").forEach(x => (x.checked = false));
+  renderManual();
+  $("#mKind").focus();
+});
+$("#btnManualImport").addEventListener("click", () => {
+  if (!MANUAL.length) return;
+  const st = $("#manualStatus"), rwFrom = $("#mRwFrom").value, rwTo = $("#mRwTo").value || rwFrom;
+  const rwProblem = !rwFrom && $("#mRwTo").value ? "Give the reading week's first day too."
+    : rwFrom && rwTo < rwFrom ? "Reading week has to end on or after its first day."
+    : rwFrom && (Date.parse(rwTo) - Date.parse(rwFrom)) / 864e5 > 20 ? "Reading week can be at most three weeks long." : "";
+  if (rwProblem) { st.textContent = rwProblem; st.classList.add("err"); $("#mRwFrom").focus(); return; }
+  const courses = new Map();
+  for (const c of MANUAL) {
+    if (!courses.has(c.code)) courses.set(c.code, { code: c.code, title: c.title || c.code, meetings: [] });
+    const course = courses.get(c.code);
+    if (c.title && course.title === c.code) course.title = c.title;
+    course.meetings.push({ kind: c.kind, start_date: c.from, end_date: c.to, start_time: c.start, end_time: c.end, days: c.days, location: c.room, room: c.room, interval_weeks: c.every });
+  }
+  const from = MANUAL.map(c => c.from).sort()[0], term = OI.termFromDate(from) || "";
+  for (const c of courses.values()) c.term = term;
+  loadPayload({ format: "ontario-tech-calendar-v1", timezone: OC.TZ, term, courses: [...courses.values()], ...(rwFrom ? { reading_week: { start: rwFrom, end: rwTo } } : {}) },
+    { kind: "manual", term, termSource: term ? "dates" : "", notes: [] });
+});
 
 // drag & drop anywhere
 let dragDepth = 0;

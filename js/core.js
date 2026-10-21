@@ -150,6 +150,14 @@ const OC = (() => {
           if (last < first || last - first > 400) throw new Error("invalid meeting date range (maximum 400 days)");
           const interval = parseInt(pick(raw, ["interval_weeks"], 1), 10);
           if (!(interval >= 1 && interval <= 52)) throw new Error("interval_weeks must be between 1 and 52");
+          // a reading week given with the classes (entered by hand): {start, end} dates
+          const rw = pick(raw, ["reading_week"], pick(course, ["reading_week"], isObj(payload) ? payload.reading_week : null));
+          let breakDays = null;
+          if (isObj(rw) && rw.start) {
+            const a = parseDate(rw.start), b = parseDate(rw.end || rw.start);
+            if (a === null || b === null || b < a || b - a > 20) throw new Error("reading_week needs a start and end date, at most three weeks apart");
+            breakDays = [a, b];
+          }
           const buildingCode = text(pick(raw, ["building_code", "buildingCode", "building"]));
           const buildingName = text(pick(raw, ["building_name", "buildingDescription"]));
           const room = text(pick(raw, ["room", "roomNumber"]));
@@ -163,6 +171,7 @@ const OC = (() => {
             instructor: instructors(pick(raw, ["instructor", "faculty"], course.faculty)),
             intervalWeeks: interval, buildingCode, buildingName, room, campus,
           };
+          if (breakDays) m.breakDays = breakDays;
           const key = JSON.stringify(m);
           if (!seen.has(key)) { seen.add(key); result.meetings.push(m); }
         } catch (e) {
@@ -220,11 +229,19 @@ const OC = (() => {
   }
   function localOf(ms, tz = TZ) { const p = zoneParts(ms, tz); return { day: dayNum(p.y, p.m, p.d), mins: p.h * 60 + p.mi }; }
 
+  /** A meeting's dates. Nothing meets in its reading week (breakDays), and a week whose
+   * Monday to Friday it covers isn't counted toward the repeat: a class every 2 weeks that
+   * meets in W1, with reading week in W2, next meets in W4. */
   function* occurrences(m, skip = new Set()) {
     const anchor = m.startDate - weekday(m.startDate);
+    const [b0, b1] = m.breakDays || [1, 0];
+    const off = day => day >= b0 && day <= b1;
+    const breaks = [];
+    for (let w = Math.floor((b0 - anchor) / 7); w <= Math.floor((b1 - anchor) / 7); w++)
+      if ([0, 1, 2, 3, 4].every(i => off(anchor + 7 * w + i))) breaks.push(w);
     for (let day = m.startDate; day <= m.endDate; day++) {
-      const week = Math.floor((day - anchor) / 7);
-      if (m.days.includes(weekday(day)) && week % m.intervalWeeks === 0 && !skip.has(day)) {
+      const week = Math.floor((day - anchor) / 7), counted = week - breaks.filter(w => w < week).length;
+      if (m.days.includes(weekday(day)) && counted % m.intervalWeeks === 0 && !off(day) && !skip.has(day)) {
         const endDay = day + (m.endTime < m.startTime ? 1 : 0);
         // Each occurrence is converted separately, retaining local class times over DST.
         yield [zonedToUtc(day, m.startTime), zonedToUtc(endDay, m.endTime), day];
@@ -558,6 +575,7 @@ const OC = (() => {
         kind: m.kind, start_date: isoDay(m.startDate), end_date: isoDay(m.endDate), start_time: hhmm(m.startTime), end_time: hhmm(m.endTime),
         days: m.days.map(d => DAY_LABELS[d]), location: m.location, instructor: m.instructor, interval_weeks: m.intervalWeeks,
         building_code: m.buildingCode, building_name: m.buildingName, room: m.room, campus: m.campus,
+        ...(m.breakDays ? { reading_week: { start: isoDay(m.breakDays[0]), end: isoDay(m.breakDays[1]) } } : {}),
       });
     }
     return { format: "ontario-tech-calendar-v1", timezone: TZ, courses: [...courses.values()] };

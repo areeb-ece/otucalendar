@@ -208,3 +208,21 @@ test("classes and bi-weekly sets: one class per course, section, day and time; r
   ]));
   assert.deepEqual([parts.empty, OC.readingWeek(parts)], [[], -1]);
 });
+
+test("a reading week given with the classes: nothing meets, and bi-weekly classes skip over it", () => {
+  const course = (every, rw) => ({ format: "ontario-tech-calendar-v1", reading_week: rw, courses: [{ code: "DEMO 1000U", title: "Example", meetings: [
+    { kind: "Laboratory", start_date: "2027-01-11", end_date: "2027-02-26", start_time: "14:10", end_time: "17:00", days: ["Mon"], interval_weeks: every }] }] });
+  const dates = (every, rw) => { const [m] = OC.normalize(course(every, rw)).meetings; return [...OC.occurrences(m)].map(([, , d]) => OC.isoDay(d)); };
+  // W1 Jan 11, reading week W2 (Jan 18–22): next W4, then W6
+  assert.deepEqual(dates(2, { start: "2027-01-18", end: "2027-01-22" }), ["2027-01-11", "2027-02-01", "2027-02-15"]);
+  assert.deepEqual(dates(2), ["2027-01-11", "2027-01-25", "2027-02-08", "2027-02-22"]);
+  // weekly classes just miss it
+  assert.equal(dates(1, { start: "2027-01-18", end: "2027-01-22" }).includes("2027-01-18"), false);
+  assert.equal(dates(1, { start: "2027-01-18", end: "2027-01-22" }).length, 6);
+  // a part-week break leaves the count alone
+  assert.deepEqual(dates(2, { start: "2027-01-25", end: "2027-01-26" }), ["2027-01-11", "2027-02-08", "2027-02-22"]);
+  // it is kept in a saved schedule
+  const [m] = OC.normalize(course(2, { start: "2027-01-18", end: "2027-01-22" })).meetings;
+  assert.deepEqual(OC.editableSchedule([m]).courses[0].meetings[0].reading_week, { start: "2027-01-18", end: "2027-01-22" });
+  assert.match(OC.normalize(course(2, { start: "2027-01-22", end: "2027-01-18" })).warnings[0], /reading_week/);
+});

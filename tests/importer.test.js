@@ -3,7 +3,6 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const OI = require("../js/importer.js");
 const OC = require("../js/core.js");
-const OH = require("../js/helper.js");
 
 const LIST_VIEW = `View Registration Information
 Fall 2026
@@ -72,10 +71,10 @@ test("a course title containing 'Dropped' does not drop its neighbour", () => {
   assert.deepEqual(n.warnings, []);
 });
 
-test("JSON passes straight through (helper output and saved schedules)", () => {
-  const helper = { format: "banner-capture-v1", term: "202609", courses: [{ courseReferenceNumber: "40123", subject: "ELEE", courseNumber: "2110U", courseTitle: "Electric Circuits I", scheduleDescription: "Lecture", term: "202609",
+test("JSON passes straight through (Banner responses and saved schedules)", () => {
+  const banner = { format: "banner-capture-v1", term: "202609", courses: [{ courseReferenceNumber: "40123", subject: "ELEE", courseNumber: "2110U", courseTitle: "Electric Circuits I", scheduleDescription: "Lecture", term: "202609",
     meetingsFaculty: [{ meetingTime: { beginTime: "1510", endTime: "1630", monday: true, wednesday: true, startDate: "09/08/2026", endDate: "12/07/2026", building: "UA", room: "1350" } }] }] };
-  const r = OI.importSource(JSON.stringify(helper));
+  const r = OI.importSource(JSON.stringify(banner));
   assert.equal(r.kind, "json");
   assert.equal(r.term, "202609");
   const n = OC.normalize(r.payload);
@@ -106,16 +105,6 @@ test("term names and dates map to Banner term codes", () => {
   assert.equal(OI.termFromName("Spring/Summer", "2027"), "202705");
   assert.equal(OI.termFromDate("2027-01-06"), "202701");
   assert.equal(OI.findTerm("Term: 202609").term, "202609");
-});
-
-test("helper snippet and bookmarklet are valid JavaScript that only talks to the schedule site", () => {
-  assert.doesNotThrow(() => new Function(OH.SOURCE));
-  const bm = OH.bookmarklet();
-  assert.ok(bm.startsWith("javascript:"));
-  assert.doesNotThrow(() => new Function(decodeURIComponent(bm.slice("javascript:".length))));
-  const urls = OH.SOURCE.match(/https?:\/\/[^\s"'`]+/g) || [];
-  assert.deepEqual(urls, [], "no absolute URLs: every request is same-origin");
-  assert.match(OH.SOURCE, /location\.hostname !== "ssp\.mycampus\.ca"/);
 });
 
 // Banner's current Schedule Details spell the subject out ("Demonstration 2100U Section 011")

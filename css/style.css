@@ -287,9 +287,17 @@ input[type="date"].sd-input { font-family: var(--font-mono); }
 .status:empty { display: none; }
 .status.err { padding: var(--sp-3) var(--sp-4); border-radius: var(--r-sm); background: var(--tint-danger); color: var(--danger-ink); font-weight: var(--fw-ui); }
 .dump { min-height: 220px; font-size: var(--fs-1); }
-pre.code { margin: 0; max-height: 300px; overflow: auto; padding: var(--sp-3) var(--sp-4); border-radius: var(--r); background: var(--well); font: var(--fs-1)/1.55 var(--font-mono); color: var(--ink-2); white-space: pre; scrollbar-width: thin; }
-a.bm { display: inline-flex; align-items: center; height: var(--ctl-h-sm); padding: 0 var(--sp-3); border: 1.5px dashed var(--accent); border-radius: var(--r-pill); font-weight: var(--fw-strong); text-decoration: none; cursor: grab; }
-@media (hover: hover) { a.bm:hover { background: var(--tint); } }
+/* classes entered by hand */
+.manual { display: grid; gap: var(--sp-3); }
+.manual .mdays { margin: 0; padding: 0; border: 0; min-width: 0; }
+.manual .mrw { display: grid; gap: var(--sp-2); margin: 0; padding: 0 0 var(--sp-3); border: 0; border-bottom: 1px solid var(--rule-2); min-width: 0; }
+.manual .mrw .help { margin: 0; }
+.manual #mDays { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); }
+.manual .mrep { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: var(--sp-3); }
+.mlist { display: grid; gap: var(--sp-2); }
+.mlist .mrow { grid-template-columns: 0 minmax(0, 1fr); column-gap: 0; }
+.mlist .mrow .mt::before { display: none; }
+.mlist .mrow .mt i { font-family: var(--font-text); }
 .sd-drop { justify-items: center; }
 .sd-drop > span { max-width: 46ch; color: var(--ink-2); font-size: var(--fs-1); }
 
@@ -317,6 +325,7 @@ a.bm { display: inline-flex; align-items: center; height: var(--ctl-h-sm); paddi
 .opt .way b { color: var(--ink); }
 .resume { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-4) var(--sp-6); border-top: 1px solid var(--rule-2); }
 .resume span { color: var(--ink-2); }
+.resume .spacer { flex: 1; }
 .wfoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-6); border-top: 1px solid var(--rule-2); background: var(--bg); font-size: var(--fs-1); }
 .wfoot .by { font-weight: var(--fw-strong); color: var(--ink); }
 .wfoot .by i { font-style: normal; font-weight: var(--fw-text); color: var(--ink-3); }

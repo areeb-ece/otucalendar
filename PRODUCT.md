@@ -27,15 +27,15 @@ timetable, downloads the file and imports it into their calendar app.
   `connect-src 'none'`, so the page cannot send the schedule anywhere, even by mistake.
 - The week preview is drawn by parsing the generated `.ics` text back, so what the student
   sees is what their calendar app gets.
-- The student brings the schedule to the page (saved page, pasted text or a readable helper
-  bookmark); the site never asks for university credentials.
+- The student brings the schedule to the page (saved page or pasted text, or
+  classes entered by hand); the site never asks for university credentials.
 
 ## Operating Context
 
 - Source: the Banner 9 "My course schedule" → Schedule Details page on ssp.mycampus.ca.
-- Three ways in: saved page (`.html` / `.mhtml`), copy and paste, or the helper bookmark
-  that saves `ontario-tech-TERM.json`. JSON saved by the tool (or the earlier Python
-  version) loads too.
+- Two ways in: saved page (`.html` / `.mhtml`) or copy and paste. JSON saved by the tool
+  (or the earlier Python version) loads too. A last resort, mostly for students elsewhere:
+  enter each class by hand.
 - Output goes into Google Calendar (Settings → Import & export), Apple Calendar or Outlook.
   The file is a snapshot; a changed timetable means deleting the old calendar and importing
   a new file.
