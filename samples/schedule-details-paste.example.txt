@@ -1,0 +1,233 @@
+Example University
+View Registration Information
+
+Class Schedule
+Term:
+Title
+
+Details
+
+Hours
+
+CRN
+
+Schedule Type
+
+Example Circuits	DEMO 2100U, 001	3	70001	Lecture	Normal Grading Mode (Alpha)	Undergraduate	Full Semester	None	09/09/2026	Registered	**Web Registered**09/09/2026
+Example Circuits	DEMO 2100U, 011	0	70002	Laboratory	Normal Grading Mode (Alpha)	Undergraduate	Full Semester	None	09/09/2026	Registered	**Web Registered**09/09/2026
+Example Chemistry	DEMO 1800U, 002	3	70011	Lecture	Normal Grading Mode (Alpha)	Undergraduate	Full Semester	None	09/09/2026	Registered	**Web Registered**09/09/2026
+Example Chemistry	DEMO 1800U, 019	0	70012	Laboratory	Normal Grading Mode (Alpha)	Undergraduate	Full Semester	None	09/09/2026	Registered	**Web Registered**09/09/2026
+Records: 4
+
+    Schedule
+    Schedule Details
+
+Class Schedule for Winter 2027
+Example Circuits | Demonstration 2100U Section 001 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+01/11/2027 -- 04/09/2027
+Thursday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   09:40 AM - 11:00 AM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: PAV1501
+01/11/2027 -- 04/09/2027
+Tuesday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   09:40 AM - 11:00 AM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: PAV1501
+Instructor: Example, Pat (Primary)
+CRN: 70001
+Example Circuits | Demonstration 2100U Section 011 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+01/15/2027 -- 01/15/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+01/29/2027 -- 01/29/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+02/12/2027 -- 02/12/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+03/05/2027 -- 03/05/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+03/19/2027 -- 03/19/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+04/02/2027 -- 04/02/2027
+Friday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 02:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SIR2010
+No specified Instructor
+CRN: 70002
+Example Chemistry | Demonstration 1800U Section 002 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+01/11/2027 -- 04/09/2027
+Wednesday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 12:30 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI1350
+01/11/2027 -- 04/09/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   11:10 AM - 12:30 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI1350
+No specified Instructor
+CRN: 70011
+Example Chemistry | Demonstration 1800U Section 019 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+01/18/2027 -- 01/18/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+02/01/2027 -- 02/01/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+02/22/2027 -- 02/22/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+03/08/2027 -- 03/08/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+03/22/2027 -- 03/22/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+04/05/2027 -- 04/05/2027
+Monday
+
+    S
+    M
+    T
+    W
+    T
+    F
+    S
+
+   01:10 PM - 03:00 PM Type: Class Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI3420
+No specified Instructor
+CRN: 70012

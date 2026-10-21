@@ -257,6 +257,70 @@ const OC = (() => {
     return { weeks, patterns };
   }
 
+  /** Meetings grouped into classes (same course, section, type, days and times; the room may
+   * change from week to week), each with the dates it meets in each week. Banner lists a
+   * bi-weekly lab as one meeting per date, so a class is often several meetings. A week in
+   * the middle of the term in which nothing meets at all is a break: it doesn't make a class
+   * irregular. A class that meets every other week (a break may stretch one gap to three) is
+   * bi-weekly; bi-weekly classes are sorted into two sets, the classes in a set meeting in the
+   * same weeks, set 1 being the one that starts first.
+   * → { weeks, classes: [{ members, rooms, days, skipped, weeks, weekly, biweekly, set }],
+   *     of, sets, empty } where `of[k]` is the class of meetings[k] and `empty` the break weeks. */
+  function classPatterns(meetings, skip = new Set()) {
+    const tw = termWeeks(meetings, skip);
+    const classes = [], byKey = new Map(), of = [];
+    meetings.forEach((m, k) => {
+      const key = [m.code, m.kind, m.crn, m.days.join(","), m.startTime, m.endTime].join("|");
+      let c = byKey.get(key);
+      if (!c) { c = { members: [], rooms: [], lo: Infinity, hi: -Infinity }; byKey.set(key, c); classes.push(c); }
+      c.members.push(k); c.lo = Math.min(c.lo, m.startDate); c.hi = Math.max(c.hi, m.endDate);
+      const room = roomLabel(m.buildingCode, m.room) || text(m.location);
+      if (room && !c.rooms.includes(room)) c.rooms.push(room);
+      of[k] = c;
+    });
+    for (const c of classes) {
+      const merge = key => tw.weeks.map((_, i) => c.members.flatMap(k => tw.patterns[k][key][i]).sort((a, b) => a - b));
+      c.days = merge("days"); c.skipped = merge("skipped");
+      c.weeks = tw.weeks.map((_, i) => i).filter(i => c.days[i].length || c.skipped[i].length);
+    }
+    // A week in which nothing meets, though some class meets both before and after it, is a
+    // break (Banner already left it out). A gap between two parts of term isn't.
+    const busy = tw.weeks.map((_, i) => classes.some(c => c.weeks.includes(i)));
+    const empty = tw.weeks.map((_, i) => i).filter(i => !busy[i] && classes.some(c => c.weeks.some(w => w < i) && c.weeks.some(w => w > i)));
+    for (const c of classes) {
+      const m = meetings[c.members[0]];
+      const possible = tw.weeks.filter((w, i) => !empty.includes(i) && m.days.some(d => w + d >= c.lo && w + d <= c.hi)).length;
+      c.weekly = c.weeks.length >= possible;
+      c.biweekly = !c.weekly && c.weeks.length >= 2 && c.weeks.every((w, j) => !j || (w - c.weeks[j - 1] >= 2 && w - c.weeks[j - 1] <= 3));
+      c.set = 0;
+    }
+    const sets = [];
+    for (const c of classes.filter(x => x.biweekly).sort((a, b) => a.weeks[0] - b.weeks[0])) {
+      // in step with a set when at least half the weeks either meets in are shared
+      let s = sets.findIndex(set => 2 * c.weeks.filter(w => set.has(w)).length >= Math.min(set.size, c.weeks.length));
+      if (s < 0 && sets.length < 2) { sets.push(new Set(c.weeks)); s = sets.length - 1; }
+      c.set = s + 1;
+    }
+    return { weeks: tw.weeks, classes, of, sets: sets.length, empty };
+  }
+
+  /** The reading week, when the schedule gives it away: the one week mid-term in which nothing
+   * meets, or, with two bi-weekly sets, the one week between their first and last meetings in
+   * which neither meets (Banner often still lists lectures that week). → week index or -1. */
+  function readingWeek(cp) {
+    if (cp.empty.length === 1) return cp.empty[0];
+    if (cp.empty.length > 1 || cp.sets < 2) return -1;
+    const bi = cp.classes.filter(c => c.set);
+    const met = new Set(bi.flatMap(c => c.weeks));
+    const lo = Math.min(...met), hi = Math.max(...met);
+    const gaps = [];
+    for (let i = lo + 1; i < hi; i++) if (!met.has(i)) gaps.push(i);
+    return gaps.length === 1 ? gaps[0] : -1;
+  }
+
+  /** Week indexes (0-based) → "W1, W3, W5, W8": every week named, as a bi-weekly class lists them. */
+  const weekNames = idx => [...idx].sort((a, b) => a - b).map(i => `W${i + 1}`).join(", ");
+
   /** Week indexes (0-based) → "W2–W14", "alternate weeks, W2–W12", "every 3 weeks, W1–W13"
    * or "W1–W3, W5, W8" (W numbers as the preview's week chips show them). */
   function weekList(idx) {
@@ -502,7 +566,7 @@ const OC = (() => {
   return {
     TZ, WEEKDAYS, DAY_LABELS, DAY_MS, text, validCrn, pick, parseDate, parseTime, parseDays, hhmm,
     dayNum, ymd, isoDay, weekday, courseRecords, meetingRecords, instructors, label, normalize,
-    exclusions, exclusionText, zoneParts, zoneOffset, zonedToUtc, localOf, occurrences, termWeeks, weekList,
+    exclusions, exclusionText, zoneParts, zoneOffset, zonedToUtc, localOf, occurrences, termWeeks, classPatterns, readingWeek, weekList, weekNames,
     DEFAULT_STYLE, PRESETS, PLACEHOLDERS, roomLabel, valuesFor, templateParts, renderTemplate, renderEvent,
     sha256hex, pyJsonStr, uidFor, isoUtc, icsUtc, escapeText, fold, makeCalendar, parseIcs, editableSchedule,
   };

@@ -25,6 +25,11 @@ const OI = (() => {
   const DAY_WORD = String.raw`(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tues?|Wed|Thu(?:rs?)?|Fri|Sat|Sun)\b`;
   const DAY_RUN = new RegExp(`\\b${DAY_WORD}(?:\\s*(?:,|/|&|and)?\\s*${DAY_WORD})*`, "g");
   const DAY_NAMES = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  // Banner's schedule details name the subject in full and leave the code out:
+  // "Calculus I | Mathematics 1010U Section 001 | Class Begin: …". The course code comes
+  // from the registration table (by CRN), or failing that from the subject's name.
+  const HEADER = /^(.+?)\s*\|\s*([A-Z][A-Za-z.&,'’ -]*?)\s+(\d{4}[UG])\s+Section\s+([A-Z0-9]{1,4})\b.*$/gm;
+  const SUBJECTS = { mathematics: "MATH", physics: "PHY", chemistry: "CHEM", "electrical engineering": "ELEE", engineering: "ENGR", communications: "COMM" };
   const KINDS = ["Lecture", "Laboratory", "Tutorial", "Seminar", "Studio", "Practicum", "Workshop", "Thesis", "Project", "Field Experience", "Lab", "Online"];
   const KIND_RE = new RegExp(`\\b(${KINDS.join("|")})\\b`, "i");
 
@@ -172,13 +177,42 @@ const OI = (() => {
     return info;
   }
 
+  /** "Mathematics 1010U Section 001" headers → anchors shaped like CODE matches, with the
+   *  code from the registration table (rows "MATH 1010U, 001 … 11991"), meta or the name. */
+  function headerAnchors(text, meta) {
+    const byCrn = new Map(), byNum = new Map(), kinds = new Map();
+    for (const m of text.matchAll(/\b([A-Z]{3,4})[  ]?(\d{4}[UG]),\s*([A-Z0-9]{1,4})\b[^\n]*?\b(\d{5})\b(?:[\s|]+([A-Za-z]+))?/g)) {
+      byCrn.set(m[4], `${m[1]} ${m[2]}`);
+      byNum.set(`${m[2]}|${m[3]}`, `${m[1]} ${m[2]}`);
+      if (m[5] && KIND_RE.test(m[5])) kinds.set(m[4], m[5]);
+    }
+    if (meta) for (const r of meta.values()) { if (r.code) byCrn.set(r.crn, r.code); if (r.kind) kinds.set(r.crn, r.kind); }
+    const heads = [...text.matchAll(HEADER)].filter(m => !new RegExp(CODE.source).test(m[0]));
+    return heads.map((m, i) => {
+      const end = i + 1 < heads.length ? heads[i + 1].index : text.length;
+      const crn = (text.slice(m.index, end).match(/\bCRN\s*[:#]?\s*(\d{5})\b/i) || [])[1] || "";
+      const code = byCrn.get(crn) || byNum.get(`${m[3]}|${m[4]}`)
+        || `${SUBJECTS[m[2].toLowerCase()] || m[2].replace(/[^A-Za-z]/g, "").slice(0, 4).toUpperCase()} ${m[3]}`;
+      const [subj, num] = code.split(" ");
+      return Object.assign([m[0], subj, num], { index: m.index, header: { title: clean(m[1]), crn, kind: kinds.get(crn) || "" } });
+    });
+  }
+
   /** Plain text (copied page, or text extracted from saved HTML) → courses. */
   function parseScheduleText(raw, { meta = null } = {}) {
     const text = String(raw || "").replace(/\r\n?/g, "\n").split("\n").map(clean).join("\n");
     const notes = [];
-    const anchors = [...text.matchAll(CODE)];
+    const anchors = [...text.matchAll(CODE), ...headerAnchors(text, meta)].sort((a, b) => a.index - b.index);
     const ranges = [...text.matchAll(TIME_RANGE)];
-    const infos = anchors.map((a, i) => courseInfo(text, a, i + 1 < anchors.length ? anchors[i + 1].index : text.length));
+    const infos = anchors.map((a, i) => {
+      const info = courseInfo(text, a, i + 1 < anchors.length ? anchors[i + 1].index : text.length);
+      if (a.header) { // the table's schedule type beats a word like "Online" in the location
+        info.title = a.header.title;
+        if (a.header.crn) info.crn = a.header.crn;
+        if (a.header.kind) info.kind = a.header.kind;
+      }
+      return info;
+    });
     // Fill gaps from earlier mentions of the same code (title links, repeated rows).
     infos.forEach((info, i) => {
       for (let j = i - 1; j >= 0; j--) {

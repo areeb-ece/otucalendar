@@ -51,6 +51,11 @@ and paste into **Import → Paste text**. When the clipboard carries the page's
 formatting, the highlighted meeting days are read from it. No file is left behind to
 delete.
 
+Banner's Schedule Details spell the subject out ("Calculus I | Mathematics 1010U Section
+001") and leave the course code to the registration table above them. Each section is
+matched to its code, type and status by its CRN, whether you paste the page or save it.
+`samples/schedule-details-paste.example.txt` is a fictional paste in that layout.
+
 ### [C] Helper bookmark
 
 **Import → Helper** shows a short script you can read line by line. Drag it to your
@@ -100,6 +105,21 @@ what you see is what your calendar app will get.
 - Click a class to see its calendar entry: title, time, location, notes, reminder and
   UID.
 - **.ics file** shows the raw file, ready to copy.
+
+**Bi-weekly classes.** Banner lists a bi-weekly lab or tutorial as one meeting per date;
+the page puts them back together into one class (same section, day and time, even when
+the room changes). Bi-weekly classes are sorted into two sets by the weeks they meet:
+classes in the same set meet in the same weeks. Set 1 (the one that starts first) is
+striped and set 2 dotted, in the preview, the legend and every image. The week label says
+which set meets that week.
+
+**Reading week.** Banner doesn't mark reading week, and often still lists lectures in it.
+The page infers it when it can, either as the one week mid-term in which nothing meets, or
+as the one week that neither set of bi-weekly classes meets. It then asks: **Yes, skip W6**
+leaves every class that week out of the calendar, and **It's a different week** or **No
+reading week** answer otherwise. When it can't tell, it offers every week with its dates to
+pick from. A gap between two parts of term (spring and summer) isn't taken for a break.
+Skipping reading week doesn't make the weekly classes count as irregular.
 
 ### Appearance
 
@@ -152,9 +172,10 @@ browser.
   a canvas that large; the dialog shows the size), or SVG, which scales without loss.
 - **Sheet:** the current theme, dark, or light for printing.
 
-Classes that don't meet every week (alternating labs, or classes that start or end part-way
-through the term) get a letter on their block, with the weeks they meet ("alternate
-weeks, W2–W12"). The **week table** under the schedule lists every week with its dates, and
+Classes that don't meet every week (bi-weekly labs, or classes that start or end part-way
+through the term) get a letter on their block. A bi-weekly class is one block, striped or
+dotted for its set ("bi-weekly · set 1"), and a key above the week table lists each set's
+weeks and the reading week. Other irregular classes show the weeks they meet ("W2–W13"). The **week table** under the schedule lists every week with its dates, and
 for each lettered class the day of the month it meets that week, so the image alone says
 exactly when everything happens. Skipped dates are struck through there and listed in their
 own row. A class counts as weekly when it meets in every week in which one of its days

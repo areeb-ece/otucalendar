@@ -117,3 +117,55 @@ test("helper snippet and bookmarklet are valid JavaScript that only talks to the
   assert.deepEqual(urls, [], "no absolute URLs: every request is same-origin");
   assert.match(OH.SOURCE, /location\.hostname !== "ssp\.mycampus\.ca"/);
 });
+
+// Banner's current Schedule Details spell the subject out ("Demonstration 2100U Section 011")
+// and leave the code to the registration table above; a bi-weekly lab is one meeting per date.
+// (Fictional courses, CRNs and people, in the layout of a real paste.)
+const pill = "\n\n    S\n    M\n    T\n    W\n    T\n    F\n    S\n\n";
+const meet = (from, to, day, time, where = "Location: OT-North Oshawa Building: Science Building (SCI) Room: SCI1350") => `${from} -- ${to}\n${day}${pill}   ${time} Type: Class ${where}\n`;
+const NEW_FORMAT = `Class Schedule
+Term:
+Title
+
+Details
+
+Hours
+
+CRN
+
+Schedule Type
+Example Circuits\tDEMO 2100U, 001\t3\t70001\tLecture\tNormal Grading Mode (Alpha)\tUndergraduate\tFull Semester\tNone\t09/09/2026\tRegistered\t**Web Registered**09/09/2026
+Example Circuits\tDEMO 2100U, 011\t0\t70002\tLaboratory\tNormal Grading Mode (Alpha)\tUndergraduate\tFull Semester\tNone\t09/09/2026\tRegistered\t**Web Registered**09/09/2026
+Example Writing\tDEMO 2200U, 004\t0\t70003\tTutorial\tNormal Grading Mode (Alpha)\tUndergraduate\tFull Semester\tNone\t09/09/2026\tRegistered\t**Web Registered**09/09/2026
+Records: 3
+
+Class Schedule for Winter 2027
+Example Circuits | Demonstration 2100U Section 001 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+${meet("01/11/2027", "04/09/2027", "Thursday", "09:40 AM - 11:00 AM")}${meet("01/11/2027", "04/09/2027", "Tuesday", "09:40 AM - 11:00 AM")}Instructor: Example, Pat (Primary)
+CRN: 70001
+Example Circuits | Demonstration 2100U Section 011 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+${["01/13", "01/27", "02/10", "03/03", "03/17", "03/31"].map(d => meet(`${d}/2027`, `${d}/2027`, "Wednesday", "11:10 AM - 12:30 PM")).join("")}No specified Instructor
+CRN: 70002
+Example Writing | Demonstration 2200U Section 004 | Class Begin: 01/11/2027 | Class End: 04/12/2027
+Registered
+${meet("01/11/2027", "04/09/2027", "Friday", "03:10 PM - 04:00 PM", "Location: OT-Online Building: Synchronous Room: SYN")}No specified Instructor
+CRN: 70003
+`;
+
+test("pasted schedule details that name the subject in full: code, CRN and type from the table", () => {
+  const r = OI.importSource(NEW_FORMAT);
+  assert.equal(r.term, "202701");
+  const byCrn = Object.fromEntries(r.payload.courses.map(c => [c.crn, c]));
+  assert.deepEqual(Object.keys(byCrn).sort(), ["70001", "70002", "70003"]);
+  assert.deepEqual(r.payload.courses.map(c => `${c.code} ${c.title}`), ["DEMO 2100U Example Circuits", "DEMO 2100U Example Circuits", "DEMO 2200U Example Writing"]);
+  assert.deepEqual(byCrn["70001"].meetings.map(m => `${m.kind} ${m.days}`), ["Lecture Thu", "Lecture Tue"]);
+  assert.equal(byCrn["70002"].meetings.length, 6, "one meeting per date of the bi-weekly lab");
+  assert.ok(byCrn["70002"].meetings.every(m => m.kind === "Laboratory" && m.start_date === m.end_date));
+  assert.equal(byCrn["70003"].meetings[0].kind, "Tutorial", "the table's type, not the word Online in the location");
+  assert.deepEqual(r.notes, []);
+  // A subject name the page has no table for still makes a code.
+  const lone = OI.importSource(NEW_FORMAT.slice(NEW_FORMAT.indexOf("Class Schedule for")));
+  assert.deepEqual([...new Set(lone.payload.courses.map(c => c.code))], ["DEMO 2100U", "DEMO 2200U"]);
+});
