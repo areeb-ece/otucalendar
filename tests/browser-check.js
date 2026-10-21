@@ -187,6 +187,43 @@ const server = http.createServer((req, res) => {
     assert.deepEqual(["bi-weekly · set 1", "bi-weekly · set 2"].map(n => term.filter(t => t === n).length), [1, 1], "each bi-weekly lab is one block, not one per date");
     console.log(`ok Banner paste: ${p.crns.length} sections, reading week W6 confirmed, ${after.count} events`);
 
+    // by hand, the last resort: a lecture and a lab of one course, then a second course
+    await page.click("#btnHome");
+    await page.click('#welcomeDlg [data-import-tab="manual"]');
+    assert.ok(await page.isVisible("#manualForm"));
+    assert.equal(await page.$$eval("#importDlg [data-tab=helper], #bookmarklet", e => e.length), 0, "the helper is gone");
+    const add = async (code, kind, days, start, end, every = "1") => {
+      await page.fill("#mCode", code); await page.fill("#mKind", kind);
+      for (const d of days) await page.check(`#mDays input[value=${d}]`);
+      await page.fill("#mStart", start); await page.fill("#mEnd", end);
+      await page.fill("#mFrom", "2027-01-11"); await page.fill("#mTo", "2027-04-09");
+      await page.selectOption("#mEvery", every);
+      await page.click("#mAdd");
+    };
+    await page.click("#mAdd");
+    assert.match(await page.textContent("#manualStatus"), /code/, "an empty class is refused");
+    await add("chem 1800u", "Lecture", ["Mon", "Wed"], "11:10", "12:30");
+    await add("CHEM 1800U", "Laboratory", ["Fri"], "14:10", "17:00", "2");
+    await add("PHY 1010U", "Lecture", ["Tue"], "09:40", "11:00");
+    assert.equal(await page.$$eval("#manualList .mrow", e => e.length), 3);
+    await page.click("#btnManualImport");
+    await page.waitForSelector("#reportDlg:not([hidden])");
+    assert.match(await page.textContent("#reportDlg"), /classes entered by hand/);
+    await page.click("#reportDlg footer .sd-primary");
+    const hand = await page.evaluate(() => ({ codes: [...S.colors.keys()], term: S.term, colours: new Set(S.meetings.map(colorOf)).size, lab: S.meetings.find(m => m.kind === "Laboratory").intervalWeeks, count: S.count }));
+    assert.deepEqual(hand, { codes: ["CHEM 1800U", "PHY 1010U"], term: "202701", colours: 3, lab: 2, count: 13 * 2 + 7 + 13 });
+    // the same classes with reading week in W2 (Jan 18–22): the lab (W1, W3…) moves to W1, W4, W6…
+    await page.click("#btnImport");
+    await page.click('#importDlg [data-tab="manual"]');
+    await page.fill("#mRwFrom", "2027-01-18"); await page.fill("#mRwTo", "2027-01-22");
+    await page.click("#btnManualImport");
+    await page.waitForSelector("#reportDlg:not([hidden])");
+    await page.click("#reportDlg footer .sd-primary");
+    const rw = await page.evaluate(() => ({ count: S.count, w2: S.weeks[1].events.length, lab: S.parsed.events.filter(e => /Laboratory/.test(e.summary)).map(e => OC.isoDay(OC.localOf(e.start).day)).slice(0, 3), rw: OC.isoDay(S.readingWeek) }));
+    assert.deepEqual(rw, { count: hand.count - 3 - 1, w2: 0, lab: ["2027-01-15", "2027-02-05", "2027-02-19"], rw: "2027-01-18" });
+    assert.match(await page.textContent("#rwBar"), /Reading week: W2, Jan 18–22\. Entered with your classes/);
+    console.log(`ok by hand: ${hand.codes.length} courses, ${hand.count} events; reading week W2 → ${rw.count}`);
+
     // "by areeb" goes to the portfolio; the phone layout still has room for the image button
     assert.equal(await page.getAttribute(".brandline .by", "href"), "https://areeb-ece.github.io/");
     assert.equal(await page.getAttribute(".brandline .by", "target"), null);

@@ -195,18 +195,14 @@
         </ol>
         <div class="sd-drop" id="wDrop">
           <button class="sd-btn sd-primary" type="button" data-action="choose" data-autofocus>Choose saved page</button>
-          <span>or drop it here · .html, .mhtml, or a .json from the helper or a previous save</span>
+          <span>or drop it here · .html, .mhtml, or a .json from a previous save</span>
         </div>
       </section>
       <section class="opt" aria-labelledby="optB">
-        <h3 id="optB">Or paste the page, or use the helper</h3>
+        <h3 id="optB">Or paste the page</h3>
         <div class="way">
           <p><b>Paste:</b> on the Schedule Details page press <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">A</kbd>, <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">C</kbd>, then paste here. No file to delete afterwards.</p>
           <button class="sd-btn" type="button" data-import-tab="paste">Paste page text</button>
-        </div>
-        <div class="way">
-          <p><b>Helper:</b> a short bookmark you can read first. It asks the schedule site for your exact meeting times and saves a .json file.</p>
-          <button class="sd-btn" type="button" data-import-tab="helper">Use the helper</button>
         </div>
         <p class="sd-callout">Never type your password anywhere but the university's own sign-in page. This site never asks for it.</p>
       </section>
@@ -214,6 +210,8 @@
     <div class="resume">
       <button class="sd-btn" type="button" data-action="sample">Try the fictional sample</button>
       <span>Explore the preview with made-up courses first.</span>
+      <span class="spacer"></span>
+      <span>Not at Ontario Tech? <button class="sd-link" type="button" data-import-tab="manual">Enter your classes by hand</button></span>
     </div>
     <div class="wfoot">
       <span class="by"><a href="https://areeb-ece.github.io/" rel="noopener noreferrer">Made by areeb</a> <i>· not an official Ontario Tech app; check your schedule for changes</i></span>
@@ -229,7 +227,7 @@
     <div class="sd-tabs" role="tablist">
       <button class="sd-tab tab" role="tab" data-tab="file" aria-selected="true" type="button">Saved page</button>
       <button class="sd-tab tab" role="tab" data-tab="paste" aria-selected="false" type="button">Paste text</button>
-      <button class="sd-tab tab" role="tab" data-tab="helper" aria-selected="false" type="button">Helper</button>
+      <button class="sd-tab tab" role="tab" data-tab="manual" aria-selected="false" type="button">By hand</button>
     </div>
     <div class="sd-body" data-pane="file">
       <ol class="steps">
@@ -249,20 +247,47 @@
       <textarea class="sd-textarea sd-mono dump" id="pasteText" spellcheck="false" placeholder="Paste the Schedule Details page here…" aria-label="Pasted schedule" aria-describedby="pasteStatus"></textarea>
       <p class="status" id="pasteStatus" aria-live="polite"></p>
     </div>
-    <div class="sd-body" data-pane="helper" hidden>
-      <p class="help">The helper reads the course rows already on your schedule page and asks that same site for each section's meeting times, exactly as the page does when you open a class. It saves <code>ontario-tech-TERM.json</code> to your computer, which you then load here. It sends nothing anywhere else, and you can read every line below first.</p>
-      <ol class="steps">
-        <li>Drag this to your bookmarks bar: <a class="bm" id="bookmarklet" href="#" draggable="true">OTU calendar helper</a> (or copy the code and paste it in the browser console on the schedule page).</li>
-        <li>Open <a href="https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT" target="_blank" rel="noopener noreferrer">My course schedule</a>, sign in, choose your term and wait for your courses.</li>
-        <li>Click the bookmark. Load the saved <code>.json</code> in the <b>Saved page</b> tab.</li>
-      </ol>
-      <p class="sd-callout sd-warn">Only run code you can read and trust. Browsers warn about pasting into the console for good reason: a malicious snippet could act as you on that site. This one is short and only reads.</p>
-      <pre class="code" id="helperCode"></pre>
+    <div class="sd-body" data-pane="manual" hidden>
+      <p class="help">For a schedule that isn't on Ontario Tech's pages, or a class missing from it: add each class with its days, times and first and last dates, then make the calendar. It replaces any schedule already loaded. <b>Save .json</b> afterwards keeps the list for next time.</p>
+      <form class="manual" id="manualForm" novalidate>
+        <fieldset class="sd-field mrw">
+          <legend class="sd-label">Reading week <span class="sd-hint">(optional, for every class)</span></legend>
+          <div class="two">
+            <label class="sd-field"><span class="sd-label">From</span><input class="sd-input" type="date" id="mRwFrom"></label>
+            <label class="sd-field"><span class="sd-label">To</span><input class="sd-input" type="date" id="mRwTo"></label>
+          </div>
+          <p class="help">Nothing meets that week, and a class every 2 weeks or more skips over it: one that meets in W1, with reading week in W2, next meets in W4, not W3.</p>
+        </fieldset>
+        <div class="two">
+          <label class="sd-field"><span class="sd-label">Course code</span><input class="sd-input" id="mCode" placeholder="e.g. MATH 1010U" autocomplete="off" required></label>
+          <label class="sd-field"><span class="sd-label">Course name <span class="sd-hint">(optional)</span></span><input class="sd-input" id="mTitle" placeholder="e.g. Calculus I" autocomplete="off"></label>
+        </div>
+        <div class="two">
+          <label class="sd-field"><span class="sd-label">Type</span><input class="sd-input" id="mKind" list="mKinds" value="Lecture" autocomplete="off"></label>
+          <label class="sd-field"><span class="sd-label">Room <span class="sd-hint">(optional)</span></span><input class="sd-input" id="mRoom" placeholder="e.g. SCI1350" autocomplete="off"></label>
+        </div>
+        <datalist id="mKinds"><option value="Lecture"><option value="Laboratory"><option value="Tutorial"><option value="Seminar"></datalist>
+        <fieldset class="sd-field mdays"><legend class="sd-label">Days</legend><div id="mDays"></div></fieldset>
+        <div class="two">
+          <label class="sd-field"><span class="sd-label">Starts</span><input class="sd-input" type="time" id="mStart" required></label>
+          <label class="sd-field"><span class="sd-label">Ends</span><input class="sd-input" type="time" id="mEnd" required></label>
+        </div>
+        <div class="two">
+          <label class="sd-field"><span class="sd-label">First class</span><input class="sd-input" type="date" id="mFrom" required></label>
+          <label class="sd-field"><span class="sd-label">Last class</span><input class="sd-input" type="date" id="mTo" required></label>
+        </div>
+        <div class="mrep">
+          <label class="sd-field"><span class="sd-label">Repeats</span><select class="sd-select" id="mEvery"><option value="1">every week</option><option value="2">every 2 weeks</option><option value="3">every 3 weeks</option><option value="4">every 4 weeks</option></select></label>
+          <button class="sd-btn" type="submit" id="mAdd">Add class</button>
+        </div>
+      </form>
+      <p class="status" id="manualStatus" aria-live="polite"></p>
+      <div class="mlist" id="manualList"></div>
     </div>
     <footer>
       <button class="sd-btn sd-ghost" type="button" data-action="sample">Fictional sample</button>
       <span class="spacer"></span>
-      <button class="sd-btn" type="button" id="btnCopyHelper" hidden>Copy code</button>
+      <button class="sd-btn sd-primary" type="button" id="btnManualImport" hidden disabled>Make calendar</button>
       <button class="sd-btn sd-primary" type="button" id="btnPasteImport" hidden>Read pasted text</button>
     </footer>
   </div>
@@ -331,7 +356,6 @@
 <script src="/design/ui.js"></script>
 <script src="js/core.js"></script>
 <script src="js/importer.js"></script>
-<script src="js/helper.js"></script>
 <script src="js/sample.js"></script>
 <script src="js/image.js"></script>
 <script src="js/app.js"></script>

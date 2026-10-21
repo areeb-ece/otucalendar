@@ -56,14 +56,16 @@ Banner's Schedule Details spell the subject out ("Calculus I | Mathematics 1010U
 matched to its code, type and status by its CRN, whether you paste the page or save it.
 `samples/schedule-details-paste.example.txt` is a fictional paste in that layout.
 
-### [C] Helper bookmark
+### [C] By hand (last resort)
 
-**Import → Helper** shows a short script you can read line by line. Drag it to your
-bookmarks bar and click it on your signed-in schedule page. It reads the course rows
-on screen, asks the same site for each section's meeting times (the
-`getFacultyMeetingTimes` request the page itself makes), and saves
-`ontario-tech-TERM.json`, which you then load here. It only makes same-site requests.
-This gives the most exact data, but only run code you have read.
+For a schedule that isn't on Ontario Tech's pages (mostly students elsewhere), or a class
+missing from one: **Enter your classes by hand** on the welcome screen, or **Import → By
+hand**. Add each class with its code, type, days, times, first and last dates and how often
+it repeats, then **Make calendar**. Classes with the same code are one course (one colour,
+a shade per type). **Save .json** keeps the list to load again later.
+Put the term's reading week at the top, if it has one: nothing meets that week, and a
+class every 2 weeks or more skips over it in its count (one that meets in W1, with reading
+week in W2, next meets in W4, not W3). It's kept in the saved `.json` as `reading_week`.
 
 `.json` files saved by OTU Calendar (**Save .json**) or by the earlier Python version
 of this project also load directly.
@@ -206,7 +208,6 @@ css/fallback.css                offline copy of the shared design (night/paper, 
 css/style.css                   this page's layout and own parts (week grid, chips, popover), tokens only
 js/core.js                      Banner normalization, Toronto time, templates, .ics write + read, term weeks
 js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
-js/helper.js                    the optional helper bookmark (shown in full on the page)
 js/app.js                       UI: import, appearance, options, week preview, downloads
 js/export.js                    the image export: its dialog and the picture's layout (week sheets, week table)
 js/image.js                     draws an image as PNG (canvas) or SVG, as PrereqFlow's does
@@ -254,7 +255,7 @@ ones (the portfolio's `public/fonts/` is served too, for Libre Franklin):
   `Room:` labels and the highlighted day letters. It was built against fictional pages
   that copy that layout. It has not been run against a real signed-in Ontario Tech
   account here, and the university can change its page at any time. If a saved page
-  doesn't read correctly, try the helper, and check the preview against your
+  doesn't read correctly, try pasting it (or enter the classes by hand), and check the preview against your
   schedule before importing.
 - Reading week, holidays, cancellations and exams are not on the schedule page and are
   not guessed.
