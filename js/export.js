@@ -343,18 +343,11 @@ function buildImageSpec(o) {
     titleOps.push({ t: "rect", x: 0, y: 0, w: W, h: titleH, fill: P.head });
     titleOps.push({ t: "path", d: `M0,${titleH - 1} H${W}`, stroke: P.ink, sw: 2 });
     titleOps.push({ t: "text", x: PAD, y: 34, size: 19, weight: 700, color: P.ink, ls: 3, mono: true, parts: [{ text: "OTU" }, { text: "/", weight: 400, color: P.accent }, { text: "CALENDAR" }] });
-    const term = S.term ? `${termName(S.term) || "Term"} · ${S.term}` : "Term unknown";
+    const term = termName(S.term) || S.term || "Term unknown";
     const w = S.weeks[S.week];
-    const what = o.scope === "term" ? "every class on one week" : o.scope === "week" ? `week ${S.week + 1} of ${S.weeks.length} · ${weekRange(w.start)}` : `all ${S.weeks.length} weeks`;
+    const what = o.scope === "term" ? "every class on one week" : o.scope === "week" ? `week ${S.week + 1} · ${weekRange(w.start)}` : "every week";
     titleOps.push({ t: "text", x: PAD, y: 57, text: `${term} · ${what}`, size: 13, weight: 600, color: P.ink2 });
-    const evs = S.parsed.events, first = evs.length && OC.localOf(evs[0].start).day, last = evs.length && OC.localOf(evs[evs.length - 1].start).day;
-    const meta = [
-      codes.length < imgCodes().length ? `${codes.length} of ${plural(imgCodes().length, "course")}` : plural(codes.length, "course"),
-      evs.length ? `classes ${dayShort(first)} – ${dayShort(last)}, ${OC.ymd(last).y}` : "",
-      S.skip.size ? `${plural(S.skip.size, "date")} skipped` : "",
-      "Toronto time",
-      `made ${OC.isoDay(todayDay())}`,
-    ].filter(Boolean).join(" · ");
+    const meta = `${plural(codes.length, "course")} · Toronto time`;
     titleOps.push({ t: "text", x: PAD, y: 76, text: OImage.fit(meta, W - 2 * PAD - 230, 11.5), size: 11.5, color: P.ink3 });
     lines.forEach((line, li) => {
       const ly = 88 + li * 20 + 14;
@@ -387,7 +380,7 @@ function buildImageSpec(o) {
     const col = i % perRow, x = PAD + col * (sheetW + gap);
     let top = y;
     if (many) { // each week's name over its sheet
-      ops.push({ t: "text", x, y: top + 12, size: 12, color: P.ink3, parts: [{ text: `W${s.index + 1}`, weight: 700, color: P.ink, mono: true }, { text: `  ${fullWeek(s.start)} · ${plural(s.blocks.length, "class", "classes")}` }] });
+      ops.push({ t: "text", x, y: top + 12, size: 12, color: P.ink3, parts: [{ text: `W${s.index + 1}`, weight: 700, color: P.ink, mono: true }, { text: `  ${fullWeek(s.start)}` }] });
       top += 20;
     }
     const sh = drawWeekSheet(ops, P, x, top, { ...g, start: s.start, blocks: s.blocks, empty: S.skip.size ? "No classes this week (skipped)." : "No classes this week." });
