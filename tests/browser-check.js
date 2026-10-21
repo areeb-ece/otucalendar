@@ -51,6 +51,13 @@ const server = http.createServer((req, res) => {
       const type = name.endsWith(".css") ? "text/css" : "text/javascript";
       r.fulfill({ status: 200, contentType: type, body: DESIGN ? fs.readFileSync(path.join(DESIGN, name)) : "" });
     });
+    // /design/fonts.css loads Libre Franklin from the portfolio's /fonts/, next to /design/.
+    await page.route(`${base}/fonts/*`, r => {
+      const name = path.basename(new URL(r.request().url()).pathname);
+      const file = DESIGN && path.join(DESIGN, "../fonts", name);
+      if (file && fs.existsSync(file)) r.fulfill({ status: 200, contentType: "font/woff2", body: fs.readFileSync(file) });
+      else r.fulfill({ status: 200, contentType: "font/woff2", body: "" });
+    });
     await page.goto(base + "/");
     if (DESIGN) {
       // The shared settings button replaces the light/dark switch, and the sky is drawn.
@@ -78,7 +85,7 @@ const server = http.createServer((req, res) => {
       assert.deepEqual(st.codes, ["DEMO 2100U", "DEMO 2200U"], file);
       assert.deepEqual(st.kinds, ["DEMO 2100U Lecture 02", "DEMO 2100U Laboratory 1", "DEMO 2200U Lecture 13", "DEMO 2200U Tutorial 4"], file);
       assert.equal(st.count, 76, file);
-      await page.click("#reportDlg footer .btn.primary");
+      await page.click("#reportDlg footer .sd-primary");
       console.log(`ok ${path.extname(file)} import: ${st.n} meetings, ${st.count} events`);
     }
 

@@ -13,137 +13,162 @@
 <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
 <link rel="preload" href="assets/fonts/mononoki-Regular.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/mononoki-Bold.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="css/style.css">
-<!-- Shared with areeb-ece.github.io and PrereqFlow (areeb-ece.github.io/design/): the master
-     palette and its themes, the settings panel and the night sky, and the visitor's saved
-     settings (one localStorage entry for all three sites). The colours in css/style.css
-     and js/theme.js's light/dark switch are a fallback for when the page is opened offline. -->
+<!-- The look comes from the shared design system at areeb-ece.github.io/design/ (the same
+     address, so the security policy allows it): tokens.css (themes and scales), ui.css (the
+     sd- components, settings panel and night sky), fonts.css (Libre Franklin), and the
+     visitor's saved settings, shared by all four sites. css/fallback.css is a copy of what
+     this page uses from them, for when it's opened offline; the shared files load after it
+     and win. css/style.css is this page's own layout and loads last. -->
+<link rel="stylesheet" href="css/fallback.css">
 <link rel="stylesheet" href="/design/tokens.css">
 <link rel="stylesheet" href="/design/ui.css">
+<link rel="stylesheet" href="/design/fonts.css">
+<link rel="stylesheet" href="css/style.css">
 <script src="/design/theme.js"></script>
 <script src="js/theme.js"></script>
 </head>
 <body>
 <div class="app" id="app">
-  <header class="bar">
+  <header class="sd-bar bar">
     <div class="brand">
-      <div class="wordmark"><b>OTU<span>/</span>CALENDAR</b><a href="https://areeb-ece.github.io/otucalendar/" target="_blank" rel="noopener noreferrer">by areeb</a></div>
-      <div class="sheetinfo" id="sheetInfo">NO SCHEDULE LOADED</div>
+      <div class="brandline"><h1 class="sd-wordmark">OTU<span>/</span>CALENDAR</h1><a class="by" href="https://areeb-ece.github.io/otucalendar/" target="_blank" rel="noopener noreferrer">by areeb</a></div>
+      <p class="sheetinfo" id="sheetInfo">No schedule loaded</p>
     </div>
-    <div class="tools">
-      <span class="lock" title="This page cannot make network requests. Your schedule stays in this tab."><i></i>offline · nothing uploaded</span>
-      <span class="sep"></span>
-      <button class="btn" id="btnImport" type="button">Import</button>
-      <button class="btn" id="btnSaveJson" type="button" title="Save the parsed meetings as editable JSON, to reopen here later without signing in" disabled>Save .json</button>
-      <button class="btn primary" id="btnDownload" type="button" disabled>Download .ics</button>
-      <button class="btn ghost" id="btnHome" type="button" title="Back to the start screen">Start over</button>
+    <span class="sd-grow"></span>
+    <span class="lock" title="This page cannot make network requests. Your schedule stays in this tab."><i aria-hidden="true"></i>Nothing leaves this tab</span>
+    <div class="actions" role="group" aria-label="Calendar file">
+      <button class="sd-btn sd-primary" id="btnDownload" type="button" disabled>Download .ics</button>
+      <button class="sd-btn" id="btnSaveJson" type="button" title="Save the parsed meetings as editable JSON, to reopen here later without signing in" disabled>Save .json</button>
+      <button class="sd-btn" id="btnImport" type="button">Import</button>
+    </div>
+    <div class="util">
+      <button class="sd-btn sd-ghost" id="btnHome" type="button" title="Clear this schedule and go back to the start screen">Start over</button>
       <span class="design-slot" data-design-settings></span>
-      <button class="btn theme" id="btnTheme" type="button" title="Switch between the dark and light sheet" hidden>Light</button>
+      <button class="sd-btn theme" id="btnTheme" type="button" title="Switch between the dark and light sheet" hidden>Light</button>
     </div>
   </header>
 
-  <div class="strip" id="strip">
-    <div class="legend" id="legend" aria-label="Courses"></div>
-    <span class="hint" id="hint">← → or swipe to change week · click a day's heading to skip that date · click a class to see its calendar entry</span>
-  </div>
-
   <div class="main" id="main">
-    <aside class="side" id="side" aria-label="Calendar settings">
-      <section class="panel" id="pSummary">
-        <h3>Calendar file</h3>
-        <dl class="facts" id="facts"></dl>
-        <div class="dates" id="fallback" hidden>
-          <p class="note warn">Some meetings have no dates on the page. Enter the first and last class dates of the term to include them.</p>
-          <div class="two">
-            <label class="fl">First class<input type="date" id="fbStart"></label>
-            <label class="fl">Last class<input type="date" id="fbEnd"></label>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h3>Appearance</h3>
-        <div class="seg wide" id="presetSeg" role="radiogroup" aria-label="Preset"></div>
-        <label class="fl">Title<input id="tTitle" autocomplete="off" spellcheck="false"></label>
-        <label class="fl">Description<textarea id="tDesc" rows="2" spellcheck="false"></textarea></label>
-        <label class="fl">Location<input id="tLoc" autocomplete="off" spellcheck="false" placeholder="empty = no location field"></label>
-        <div class="insert">
-          <select class="ctl" id="phSelect" aria-label="Placeholder to insert"></select>
-          <button class="btn" type="button" id="phInsert" title="Insert at the cursor in the last field you clicked">Insert</button>
-        </div>
-        <p class="err" id="tErr" aria-live="polite"></p>
-        <div class="example" id="example" aria-live="polite"></div>
-      </section>
-
-      <section class="panel">
-        <h3>Options</h3>
-        <label class="fl">Calendar name<input id="oName" autocomplete="off" value="Ontario Tech Courses"></label>
-        <label class="fl">Reminder
-          <select class="ctl" id="oReminder">
-            <option value="">none</option><option value="0">at start</option><option value="5">5 min before</option><option value="10">10 min before</option>
-            <option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option>
-          </select>
-        </label>
-        <label class="fl">Skip dates <span class="hint">reading week, holidays · YYYY-MM-DD or YYYY-MM-DD..YYYY-MM-DD</span>
-          <textarea id="oSkip" rows="2" spellcheck="false" placeholder="2026-10-12, 2026-10-13..2026-10-16"></textarea>
-        </label>
-        <p class="err" id="oErr" aria-live="polite"></p>
-        <p class="tiny">Reading week and holidays are not on your schedule page. Check the <a href="https://registrar.ontariotechu.ca/" target="_blank" rel="noopener noreferrer">academic calendar</a>, or click a day's heading in the preview.</p>
-      </section>
-
-      <section class="panel">
-        <h3>Meetings <span class="ct" id="meetCount"></span></h3>
-        <div class="meetings" id="meetings"></div>
-      </section>
-
-      <section class="panel" id="pNotes" hidden>
-        <h3>Needs a look <span class="ct" id="noteCount"></span></h3>
-        <ul class="notes" id="notes"></ul>
-      </section>
-
-      <section class="panel">
-        <h3>Add it to your calendar</h3>
-        <ol class="steps">
-          <li><b>Google:</b> on a computer, open <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank" rel="noopener noreferrer">Settings → Import &amp; export</a>, choose the .ics, pick a calendar (a new one such as "Fall 2026" is easiest to remove later), Import.</li>
-          <li><b>Apple:</b> open the .ics; Calendar asks which calendar to add it to.</li>
-          <li><b>Outlook:</b> Calendar → Add calendar → Upload from file.</li>
-        </ol>
-        <p class="tiny">The file is a snapshot. If your timetable changes, delete the old course calendar and import a new file; re-importing doesn't update events.</p>
-      </section>
-    </aside>
-
     <main class="stage" id="stage" data-sky>
       <div class="stagebar">
-        <div class="seg" id="viewSeg" role="radiogroup" aria-label="Preview">
+        <div class="sd-seg" id="viewSeg" role="radiogroup" aria-label="Preview">
           <button type="button" role="radio" data-view="weeks" aria-checked="true">Weeks</button>
           <button type="button" role="radio" data-view="ics" aria-checked="false">.ics file</button>
         </div>
+        <div class="legend" id="legend" aria-label="Courses"></div>
         <div class="weeknav" id="weekNav">
-          <button class="btn icon" type="button" id="wPrev" aria-label="Previous week" title="Previous week  [←]">‹</button>
+          <button class="sd-btn sd-icon" type="button" id="wPrev" aria-label="Previous week" title="Previous week  [←]"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
           <div class="wlabel" id="wLabel" aria-live="polite"></div>
-          <button class="btn icon" type="button" id="wNext" aria-label="Next week" title="Next week  [→]">›</button>
-          <button class="btn ghost" type="button" id="wToday" title="Jump to this week  [t]">today</button>
+          <button class="sd-btn sd-icon" type="button" id="wNext" aria-label="Next week" title="Next week  [→]"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 3.5 4.5 4.5L6 12.5"/></svg></button>
+          <button class="sd-btn sd-ghost" type="button" id="wToday" title="Jump to this week  [t]">Today</button>
         </div>
       </div>
       <div class="chips" id="weekChips" role="tablist" aria-label="Weeks"></div>
       <div class="viewWeeks" id="viewWeeks">
         <div class="track" id="track" tabindex="0" aria-label="Week preview; scroll sideways to change week"></div>
+        <p class="hint" id="hint"><span class="kb"><kbd class="sd-kbd">←</kbd> <kbd class="sd-kbd">→</kbd> change week</span><span class="kb"><kbd class="sd-kbd">t</kbd> this week</span><span class="touch">Swipe to change week</span><span>Click a day's heading to skip that date</span><span>Click a class to see its calendar entry</span></p>
       </div>
       <div class="viewIcs" id="viewIcs" hidden>
-        <div class="icsbar"><span id="icsInfo"></span><span class="spacer"></span><button class="btn" type="button" id="btnCopyIcs">Copy text</button></div>
+        <div class="icsbar"><span id="icsInfo"></span><span class="spacer"></span><button class="sd-btn sd-small" type="button" id="btnCopyIcs">Copy text</button></div>
         <pre class="icstext" id="icsText"></pre>
       </div>
       <div class="pop" id="pop" hidden role="dialog" aria-label="Calendar entry"></div>
       <div class="empty" id="empty">
-        <div>
-          <p>No schedule loaded.</p>
+        <div class="empty-in">
+          <h2>No schedule loaded yet</h2>
+          <p>Your term shows up here week by week, exactly as the calendar file will have it.</p>
           <div class="row">
-            <button class="btn primary" type="button" data-action="home">Start screen</button>
-            <button class="btn" type="button" data-action="sample">Try the fictional sample</button>
+            <button class="sd-btn sd-primary" type="button" data-action="home">Import your schedule</button>
+            <button class="sd-btn" type="button" data-action="sample">Try the fictional sample</button>
           </div>
         </div>
       </div>
     </main>
+    <aside class="side" id="side" aria-label="Calendar settings">
+      <p class="side-empty">Import a schedule and its calendar file, dates, event text and meetings appear here to check and adjust.</p>
+
+      <section class="panel attn" id="pNotes" aria-labelledby="hNotes" hidden>
+        <h2 id="hNotes">Needs a look <span class="ct" id="noteCount"></span></h2>
+        <ul class="notes" id="notes"></ul>
+      </section>
+
+      <section class="panel" aria-labelledby="hDates">
+        <h2 id="hDates">Dates</h2>
+        <div class="dates" id="fallback" hidden>
+          <p class="sd-callout sd-warn">Some meetings have no dates on the page. Enter the first and last class dates of the term to include them.</p>
+          <div class="two">
+            <label class="sd-field"><span class="sd-label">First class</span><input class="sd-input sd-small" type="date" id="fbStart"></label>
+            <label class="sd-field"><span class="sd-label">Last class</span><input class="sd-input sd-small" type="date" id="fbEnd"></label>
+          </div>
+        </div>
+        <div class="sd-field">
+          <label class="sd-label" for="oSkip">Skip dates</label>
+          <textarea class="sd-textarea sd-mono" id="oSkip" rows="2" spellcheck="false" placeholder="e.g. 2026-10-12..2026-10-16" aria-describedby="oSkipHint oErr"></textarea>
+          <p class="sd-error" id="oErr" aria-live="polite"></p>
+          <p class="sd-hint" id="oSkipHint">Reading week and holidays aren't on your schedule page. Type dates (YYYY-MM-DD) or ranges (YYYY-MM-DD..YYYY-MM-DD), or click a day's heading in the preview. The <a href="https://registrar.ontariotechu.ca/" target="_blank" rel="noopener noreferrer">academic calendar</a> lists them.</p>
+        </div>
+      </section>
+
+      <section class="panel" id="pSummary" aria-labelledby="hFile">
+        <h2 id="hFile">Calendar file</h2>
+        <dl class="facts" id="facts"></dl>
+      </section>
+
+      <section class="panel" aria-labelledby="hText">
+        <h2 id="hText">Event text</h2>
+        <div class="sd-seg wide" id="presetSeg" role="radiogroup" aria-label="Event text preset"></div>
+        <div class="example" id="example" aria-live="polite"></div>
+        <p class="sd-error" id="tErr" aria-live="polite"></p>
+        <details class="disc">
+          <summary>Edit title, description and location</summary>
+          <div class="disc-body">
+            <label class="sd-field"><span class="sd-label">Title</span><input class="sd-input sd-small sd-mono" id="tTitle" autocomplete="off" spellcheck="false" aria-describedby="tErr"></label>
+            <label class="sd-field"><span class="sd-label">Description</span><textarea class="sd-textarea sd-mono" id="tDesc" rows="2" spellcheck="false" aria-describedby="tErr"></textarea></label>
+            <label class="sd-field"><span class="sd-label">Location</span><input class="sd-input sd-small sd-mono" id="tLoc" autocomplete="off" spellcheck="false" placeholder="Leave empty for no location" aria-describedby="tErr"></label>
+            <div class="sd-field">
+              <span class="sd-label" id="phLabel">Placeholder</span>
+              <div class="insert">
+                <span class="sd-select sd-small"><select id="phSelect" aria-labelledby="phLabel"></select></span>
+                <button class="sd-btn" type="button" id="phInsert">Insert placeholder</button>
+              </div>
+              <p class="sd-hint">Goes in at the cursor, in the last field you clicked. Your templates are remembered in this browser.</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel" aria-labelledby="hOpts">
+        <h2 id="hOpts">Reminder and calendar name</h2>
+        <label class="sd-field"><span class="sd-label">Reminder</span>
+          <span class="sd-select sd-small"><select id="oReminder">
+            <option value="">None</option><option value="0">At start</option><option value="5">5 min before</option><option value="10">10 min before</option>
+            <option value="15">15 min before</option><option value="30">30 min before</option><option value="60">1 hour before</option>
+          </select></span>
+        </label>
+        <label class="sd-field"><span class="sd-label">Calendar name</span><input class="sd-input sd-small" id="oName" autocomplete="off" value="Ontario Tech Courses"></label>
+      </section>
+
+      <section class="panel" aria-labelledby="hMeet">
+        <h2 id="hMeet">Meetings <span class="ct" id="meetCount"></span></h2>
+        <p class="sd-hint">Switch off any you don't want in the file. Set alternating labs to repeat every 2 weeks.</p>
+        <div class="meetings" id="meetings"></div>
+      </section>
+
+      <section class="panel">
+        <details class="disc">
+          <summary>Add the file to your calendar</summary>
+          <div class="disc-body">
+            <ol class="steps">
+              <li><b>Google:</b> on a computer, open <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank" rel="noopener noreferrer">Settings → Import &amp; export</a>, choose the .ics, pick a calendar (a new one such as "Fall 2026" is easiest to remove later), Import.</li>
+              <li><b>Apple:</b> open the .ics; Calendar asks which calendar to add it to.</li>
+              <li><b>Outlook:</b> Calendar → Add calendar → Upload from file.</li>
+            </ol>
+            <p class="sd-hint">The file is a snapshot. If your timetable changes, delete the old course calendar and import a new file; re-importing doesn't update events.</p>
+          </div>
+        </details>
+      </section>
+    </aside>
+
   </div>
 </div>
 
@@ -151,45 +176,45 @@
 
 <!-- Welcome -->
 <div class="overlay" id="welcomeDlg" hidden>
-  <div class="dialog welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+  <div class="sd-dialog dlg welcome" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
     <div class="tb">
-      <div>
-        <h1 id="welcomeTitle">OTU<span>/</span>CALENDAR</h1>
-        <p>Your Ontario Tech course schedule as a calendar file (.ics) for Google, Apple or Outlook Calendar, previewed week by week before you download it.</p>
-      </div>
-      <div><span class="lbl">privacy</span><span class="mono">runs in this tab</span><button class="linkish" type="button" data-open="privacyDlg">how it stays private</button></div>
+      <h2 class="sd-wordmark" id="welcomeTitle">OTU<span>/</span>CALENDAR</h2>
+      <p class="lead">Your Ontario Tech course schedule as a calendar file (.ics) for Google, Apple or Outlook Calendar, previewed week by week before you download it.</p>
+      <p class="priv"><span class="lockdot" aria-hidden="true"></span>Runs in this tab; nothing is uploaded. <button class="sd-link" type="button" data-open="privacyDlg">How it stays private</button></p>
     </div>
     <div class="opts">
-      <section class="opt">
-        <span class="tag">[A] recommended</span>
-        <h3>Upload your saved schedule page</h3>
+      <section class="opt opt-a" aria-labelledby="optA">
+        <h3 id="optA">Upload your saved schedule page <span class="sd-tag">Recommended</span></h3>
         <ol class="steps">
           <li>Open <a href="https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT" target="_blank" rel="noopener noreferrer">My course schedule</a>, sign in and choose your term.</li>
           <li>Open <b>Schedule Details</b> so the meeting times are on screen.</li>
-          <li>Press <span class="kbd">Ctrl</span> <span class="kbd">S</span> (<span class="kbd">⌘</span> <span class="kbd">S</span> on a Mac) and save as <b>Webpage, Complete</b> or <b>Single File</b>. Not "HTML only": that saves the page before your courses load.</li>
+          <li>Press <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">S</kbd> (<kbd class="sd-kbd">⌘</kbd> <kbd class="sd-kbd">S</kbd> on a Mac) and save as <b>Webpage, Complete</b> or <b>Single File</b>. Not "HTML only": that saves the page before your courses load.</li>
           <li>Drop the file here.</li>
         </ol>
-        <div class="drop" id="wDrop">
-          <div class="row"><button class="btn primary" type="button" data-action="choose">Choose saved page</button></div>
-          <small>.html · .mhtml · or a .json from the helper or a previous save</small>
+        <div class="sd-drop" id="wDrop">
+          <button class="sd-btn sd-primary" type="button" data-action="choose" data-autofocus>Choose saved page</button>
+          <span>or drop it here · .html, .mhtml, or a .json from the helper or a previous save</span>
         </div>
       </section>
-      <section class="opt">
-        <span class="tag">[B] other ways in</span>
-        <h3>Copy &amp; paste, or the helper</h3>
-        <p><b>Paste:</b> on the Schedule Details page press <span class="kbd">Ctrl</span> <span class="kbd">A</span>, <span class="kbd">Ctrl</span> <span class="kbd">C</span>, then paste here. No file to delete afterwards.</p>
-        <div class="row"><button class="btn" type="button" data-import-tab="paste">Paste page text</button></div>
-        <p><b>Helper:</b> a short bookmark you can read first. It asks the schedule site for your exact meeting times and saves a .json file.</p>
-        <div class="row"><button class="btn" type="button" data-import-tab="helper">Use the helper</button></div>
-        <p class="note">Never type your password anywhere but the university's own sign-in page. This site never asks for it.</p>
+      <section class="opt" aria-labelledby="optB">
+        <h3 id="optB">Or paste the page, or use the helper</h3>
+        <div class="way">
+          <p><b>Paste:</b> on the Schedule Details page press <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">A</kbd>, <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">C</kbd>, then paste here. No file to delete afterwards.</p>
+          <button class="sd-btn" type="button" data-import-tab="paste">Paste page text</button>
+        </div>
+        <div class="way">
+          <p><b>Helper:</b> a short bookmark you can read first. It asks the schedule site for your exact meeting times and saves a .json file.</p>
+          <button class="sd-btn" type="button" data-import-tab="helper">Use the helper</button>
+        </div>
+        <p class="sd-callout">Never type your password anywhere but the university's own sign-in page. This site never asks for it.</p>
       </section>
     </div>
     <div class="resume">
-      <button class="btn" type="button" data-action="sample">Try the fictional sample</button>
+      <button class="sd-btn" type="button" data-action="sample">Try the fictional sample</button>
       <span>Explore the preview with made-up courses first.</span>
     </div>
     <div class="wfoot">
-      <span class="by">made by areeb <i>· not an official Ontario Tech app; check your schedule for changes</i></span>
+      <span class="by">Made by areeb <i>· not an official Ontario Tech app; check your schedule for changes</i></span>
       <a href="https://areeb-ece.github.io/otucalendar/" target="_blank" rel="noopener noreferrer">areeb-ece.github.io/otucalendar</a>
     </div>
   </div>
@@ -197,78 +222,78 @@
 
 <!-- Import dialog -->
 <div class="overlay" id="importDlg" hidden>
-  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="importTitle">
-    <header><h2 id="importTitle">Import your schedule</h2><button class="xbtn" type="button" data-close aria-label="Close">×</button></header>
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab" data-tab="file" aria-selected="true" type="button">Saved page</button>
-      <button class="tab" role="tab" data-tab="paste" aria-selected="false" type="button">Paste text</button>
-      <button class="tab" role="tab" data-tab="helper" aria-selected="false" type="button">Helper</button>
+  <div class="sd-dialog dlg wide" role="dialog" aria-modal="true" aria-labelledby="importTitle">
+    <header><h2 id="importTitle">Import your schedule</h2><button class="sd-x" type="button" data-close aria-label="Close">×</button></header>
+    <div class="sd-tabs" role="tablist">
+      <button class="sd-tab tab" role="tab" data-tab="file" aria-selected="true" type="button">Saved page</button>
+      <button class="sd-tab tab" role="tab" data-tab="paste" aria-selected="false" type="button">Paste text</button>
+      <button class="sd-tab tab" role="tab" data-tab="helper" aria-selected="false" type="button">Helper</button>
     </div>
-    <div class="dbody" data-pane="file">
+    <div class="sd-body" data-pane="file">
       <ol class="steps">
         <li>Open <a href="https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT" target="_blank" rel="noopener noreferrer">My course schedule</a> (MyOntarioTech → My course schedule / View Registration Information), sign in and choose your term.</li>
         <li>Click <b>Schedule Details</b>. If a course's meeting times are collapsed, expand them.</li>
-        <li>Save the page: <span class="kbd">Ctrl</span> <span class="kbd">S</span> / <span class="kbd">⌘</span> <span class="kbd">S</span>. Chrome/Edge: <b>Webpage, Complete</b> or <b>Webpage, Single File</b>. Firefox: <b>Web Page, complete</b>. Safari's save formats don't keep the loaded schedule, so use Chrome, Edge or Firefox there, or the Paste tab.</li>
+        <li>Save the page: <kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">S</kbd> / <kbd class="sd-kbd">⌘</kbd> <kbd class="sd-kbd">S</kbd>. Chrome/Edge: <b>Webpage, Complete</b> or <b>Webpage, Single File</b>. Firefox: <b>Web Page, complete</b>. Safari's save formats don't keep the loaded schedule, so use Chrome, Edge or Firefox there, or the Paste tab.</li>
         <li>Choose or drop the saved <code>.html</code> / <code>.mhtml</code> below.</li>
       </ol>
-      <div class="drop" id="dlgDrop">
-        <div class="row"><button class="btn primary" type="button" data-action="choose">Choose file</button></div>
-        <small>Read inside this tab only. The saved page also holds your name and student number: delete it once your calendar is made, and sign out of MyOntarioTech when you're done.</small>
+      <div class="sd-drop" id="dlgDrop">
+        <button class="sd-btn sd-primary" type="button" data-action="choose" data-autofocus>Choose file</button>
+        <span>or drop it here. It's read inside this tab only. The saved page also holds your name and student number: delete it once your calendar is made, and sign out of MyOntarioTech when you're done.</span>
       </div>
       <p class="status" id="fileStatus" aria-live="polite"></p>
     </div>
-    <div class="dbody" data-pane="paste" hidden>
-      <p class="help">On the <b>Schedule Details</b> page select everything (<span class="kbd">Ctrl</span> <span class="kbd">A</span>), copy (<span class="kbd">Ctrl</span> <span class="kbd">C</span>) and paste below. Pasting from the page keeps its layout, which is how meeting days are read; if days come out missing, use the saved page instead.</p>
-      <textarea class="dump" id="pasteText" spellcheck="false" placeholder="Paste the Schedule Details page here…" aria-label="Pasted schedule"></textarea>
+    <div class="sd-body" data-pane="paste" hidden>
+      <p class="help">On the <b>Schedule Details</b> page select everything (<kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">A</kbd>), copy (<kbd class="sd-kbd">Ctrl</kbd> <kbd class="sd-kbd">C</kbd>) and paste below. Pasting from the page keeps its layout, which is how meeting days are read; if days come out missing, use the saved page instead.</p>
+      <textarea class="sd-textarea sd-mono dump" id="pasteText" spellcheck="false" placeholder="Paste the Schedule Details page here…" aria-label="Pasted schedule" aria-describedby="pasteStatus"></textarea>
       <p class="status" id="pasteStatus" aria-live="polite"></p>
     </div>
-    <div class="dbody" data-pane="helper" hidden>
+    <div class="sd-body" data-pane="helper" hidden>
       <p class="help">The helper reads the course rows already on your schedule page and asks that same site for each section's meeting times, exactly as the page does when you open a class. It saves <code>ontario-tech-TERM.json</code> to your computer, which you then load here. It sends nothing anywhere else, and you can read every line below first.</p>
       <ol class="steps">
         <li>Drag this to your bookmarks bar: <a class="bm" id="bookmarklet" href="#" draggable="true">OTU calendar helper</a> (or copy the code and paste it in the browser console on the schedule page).</li>
         <li>Open <a href="https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT" target="_blank" rel="noopener noreferrer">My course schedule</a>, sign in, choose your term and wait for your courses.</li>
         <li>Click the bookmark. Load the saved <code>.json</code> in the <b>Saved page</b> tab.</li>
       </ol>
-      <p class="note warn">Only run code you can read and trust. Browsers warn about pasting into the console for good reason: a malicious snippet could act as you on that site. This one is short and only reads.</p>
+      <p class="sd-callout sd-warn">Only run code you can read and trust. Browsers warn about pasting into the console for good reason: a malicious snippet could act as you on that site. This one is short and only reads.</p>
       <pre class="code" id="helperCode"></pre>
     </div>
     <footer>
-      <button class="btn primary" type="button" id="btnPasteImport" hidden>Read pasted text</button>
-      <button class="btn" type="button" id="btnCopyHelper" hidden>Copy code</button>
+      <button class="sd-btn sd-ghost" type="button" data-action="sample">Fictional sample</button>
       <span class="spacer"></span>
-      <button class="btn ghost" type="button" data-action="sample">Fictional sample</button>
+      <button class="sd-btn" type="button" id="btnCopyHelper" hidden>Copy code</button>
+      <button class="sd-btn sd-primary" type="button" id="btnPasteImport" hidden>Read pasted text</button>
     </footer>
   </div>
 </div>
 
 <!-- Privacy -->
 <div class="overlay" id="privacyDlg" hidden>
-  <div class="dialog narrow" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
-    <header><h2 id="privacyTitle">How your schedule stays private</h2><button class="xbtn" type="button" data-close aria-label="Close">×</button></header>
-    <div class="dbody prose">
+  <div class="sd-dialog dlg" role="dialog" aria-modal="true" aria-labelledby="privacyTitle">
+    <header><h2 id="privacyTitle">How your schedule stays private</h2><button class="sd-x" type="button" data-close aria-label="Close">×</button></header>
+    <div class="sd-body prose">
       <p><b>No server.</b> This is a static page. Your file or pasted text is read by JavaScript in this tab and the .ics is built here too.</p>
       <p><b>No network.</b> The page's security policy (<code>connect-src 'none'</code>) stops it from sending anything over the network, even by mistake.</p>
       <p><b>No sign-in here.</b> You sign in only on the university's own page. This site never sees your password, cookies or session.</p>
       <p><b>Inert parsing.</b> An uploaded page is opened as an inert document: its scripts don't run, its images and links aren't loaded, and it is never shown here. Only course codes, titles, CRNs, meeting times and rooms are read from it.</p>
       <p><b>Nothing kept.</b> Your schedule isn't stored; closing the tab clears it. Only your appearance templates and display settings (theme, background) are remembered in this browser; the display settings are shared with the other sites on areeb-ece.github.io.</p>
       <p><b>Your files.</b> A saved schedule page contains your name and student number. Delete it once you're done, and sign out of MyOntarioTech.</p>
-      <p class="tiny">The source is on <a href="https://github.com/areeb-ece/otucalendar" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
+      <p class="sd-hint">The source is on <a href="https://github.com/areeb-ece/otucalendar" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
     </div>
-    <footer><button class="btn primary" type="button" data-close>Got it</button></footer>
+    <footer><button class="sd-btn sd-primary" type="button" data-close data-autofocus>Got it</button></footer>
   </div>
 </div>
 
 <!-- Import report -->
 <div class="overlay" id="reportDlg" hidden>
-  <div class="dialog narrow" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
-    <header><h2 id="reportTitle">Import summary</h2><button class="xbtn" type="button" data-close aria-label="Close">×</button></header>
-    <div class="dbody" id="reportBody"></div>
-    <footer><button class="btn primary" type="button" data-close>Preview calendar</button><span class="spacer"></span><button class="btn ghost" type="button" id="btnReimport">Try another import</button></footer>
+  <div class="sd-dialog dlg" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <header><h2 id="reportTitle">Import summary</h2><button class="sd-x" type="button" data-close aria-label="Close">×</button></header>
+    <div class="sd-body" id="reportBody"></div>
+    <footer><button class="sd-btn sd-ghost" type="button" id="btnReimport">Try another import</button><span class="spacer"></span><button class="sd-btn sd-primary" type="button" data-close data-autofocus>Preview calendar</button></footer>
   </div>
 </div>
 
-<div class="dropveil" id="dropVeil" hidden><div>Drop to import</div></div>
-<div class="toast" id="toast" role="status" hidden></div>
+<div class="dropveil" id="dropVeil" hidden><div class="sd-drop" data-over><b>Drop to import</b><span>Read in this tab; nothing is uploaded.</span></div></div>
+<div class="sd-toast toast" id="toast" role="status" hidden></div>
 
 <script src="/design/ui.js"></script>
 <script src="js/core.js"></script>
