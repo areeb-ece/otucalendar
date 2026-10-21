@@ -21,7 +21,8 @@ python3 -m http.server 8080      # or: npm run serve
 ```
 
 You can also open `index.html` directly from disk. Everything works that way, but
-browsers block the font files on `file://`, so the page falls back to your monospace font.
+browsers block the font files on `file://`, and the shared design files can't load there, so
+the page falls back to your system fonts and its own offline copy of the design (below).
 
 To publish it, turn on GitHub Pages for the repository (Settings → Pages → deploy
 from the `main` branch, root folder).
@@ -154,7 +155,8 @@ so identical classes keep identical IDs.
 
 ```
 index.html                      page, dialogs, Content Security Policy
-css/style.css                   the PrereqFlow sheet: fallback dark/light tokens, components, week grid
+css/fallback.css                offline copy of the shared design (night/paper, scales, sd- components)
+css/style.css                   this page's layout and own parts (week grid, chips, popover), tokens only
 js/core.js                      Banner normalization, Toronto time, templates, .ics write + read
 js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
 js/helper.js                    the optional helper bookmark (shown in full on the page)
@@ -181,15 +183,20 @@ colour, corner style, motion, and the night sky behind the week preview (number 
 stars, size, brightness, blur, colour, drift speed and direction, glow). Choices are
 saved in your browser and apply on all three sites.
 
-The colours, themes, settings panel and sky come from the portfolio repo's
-`public/design/` (`tokens.css`, `ui.css`, `theme.js`, `ui.js`), served at `/design/`.
-The page loads them after `css/style.css`, so changing them there restyles all three
-sites. They come from the same address, so the Content Security Policy needs no change.
-Opened offline or from disk, they can't load: the page falls back to the night/paper
-colours in `css/style.css` and a light/dark button.
+The colours, themes, type, spacing and motion scales, the shared `sd-` components
+(buttons, fields, tabs, dialogs, toast…), the settings panel, the sky and the text face
+(Libre Franklin) come from the portfolio repo's `public/design/` (`tokens.css`, `ui.css`,
+`fonts.css`, `theme.js`, `ui.js`), served at `/design/`. The page loads them after
+`css/fallback.css` and before its own `css/style.css`, which uses only their tokens, so
+changing them there restyles every site. They come from the same address, so the Content
+Security Policy needs no change. Opened offline or from disk, they can't load: the page
+falls back to `css/fallback.css` (a copy of the night/paper themes, the scales and the
+`sd-` rules it uses), the system sans and a light/dark button. When the shared files
+change, copy the same sections into `css/fallback.css` again.
 
 The browser check stubs those files out and tests the fallback. To test with the real
-ones: `DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser`.
+ones (the portfolio's `public/fonts/` is served too, for Libre Franklin):
+`DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser`.
 
 ## Limits
 

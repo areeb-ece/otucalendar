@@ -186,8 +186,8 @@ function render() {
   $("#btnDownload").disabled = !S.ics;
   $("#btnSaveJson").disabled = !has || !S.meetings.length;
   $("#sheetInfo").textContent = has
-    ? [S.term ? `${S.term}${termName(S.term) ? " · " + termName(S.term).toUpperCase() : ""}` : "TERM UNKNOWN", plural(S.colors.size, "COURSE"), plural(S.count, "CLASS", "CLASSES")].join(" · ")
-    : "NO SCHEDULE LOADED";
+    ? [S.term ? `${S.term}${termName(S.term) ? " · " + termName(S.term) : ""}` : "Term unknown", plural(S.colors.size, "course"), plural(S.count, "class", "classes")].join(" · ")
+    : "No schedule loaded";
   renderLegend(); renderFacts(); renderAppearance(); renderMeetings(); renderNotes();
   renderWeeks(); renderIcs();
 }
@@ -232,7 +232,7 @@ function renderAppearance() {
   for (const [id, k] of [["#tTitle", "title"], ["#tDesc", "description"], ["#tLoc", "location"]]) {
     const el = $(id);
     if (el.value !== S.style[k] && document.activeElement !== el) el.value = S.style[k];
-    el.classList.toggle("bad", !!S.templateErr && (() => { try { OC.templateParts(S.style[k]); return false; } catch (e) { return true; } })());
+    el.setAttribute("aria-invalid", String(!!S.templateErr && (() => { try { OC.templateParts(S.style[k]); return false; } catch (e) { return true; } })()));
   }
   $("#tErr").textContent = S.templateErr;
   const ex = $("#example");
@@ -260,7 +260,7 @@ function renderMeetings() {
   $("#meetCount").textContent = S.meetings.length ? `${S.meetings.length - S.off.size}/${S.meetings.length}` : "";
   S.meetings.forEach((m, i) => {
     const room = OC.roomLabel(m.buildingCode, m.room) || m.location;
-    const interval = h("select", { class: "ctl", "aria-label": `Repeat for ${m.code} ${m.kind}`, onchange: e => { m.intervalWeeks = +e.target.value; rebuild(); } },
+    const interval = h("select", { class: "sd-select sd-small", "aria-label": `Repeat for ${m.code} ${m.kind}`, onchange: e => { m.intervalWeeks = +e.target.value; rebuild(); } },
       ...[1, 2, 3, 4].map(n => h("option", { value: n, selected: m.intervalWeeks === n }, n === 1 ? "every week" : `every ${n} weeks`)));
     el.append(h("div", { class: "mrow" + (S.off.has(i) ? " off" : ""), vars: { "--cc": colorOf(m) } },
       h("input", { type: "checkbox", checked: !S.off.has(i), "aria-label": `Include ${m.code} ${m.kind}`, onchange: e => { e.target.checked ? S.off.delete(i) : S.off.add(i); rebuild(); } }),
@@ -308,7 +308,7 @@ function renderWeeks() {
   track.replaceChildren(); chips.replaceChildren();
   $("#weekNav").hidden = !S.weeks.length;
   if (!S.weeks.length || !S.layout) {
-    if (S.payload) track.append(h("div", { class: "week" }, h("p", { class: "note warn", text: S.templateErr || S.buildErr || "Nothing to preview." })));
+    if (S.payload) track.append(h("div", { class: "week" }, h("p", { class: "sd-callout sd-warn", text: S.templateErr || S.buildErr || "Nothing to preview." })));
     $("#wLabel").replaceChildren();
     return;
   }
@@ -320,7 +320,7 @@ function renderWeeks() {
     grid.append(h("div", { class: "corner" }));
     for (let d = 0; d < days; d++) {
       const day = w.start + d, skipped = S.skip.has(day);
-      grid.append(h("button", { type: "button", class: `dh${day === today ? " today" : ""}${skipped ? " skipped" : ""}`, title: skipped ? "Click to include this date again" : "Click to skip this date (holiday, reading week)", "aria-pressed": String(skipped), onclick: () => toggleSkip(day) },
+      grid.append(h("button", { type: "button", class: `dh${day === today ? " today" : ""}${skipped ? " skipped" : ""}`, title: skipped ? "Click to include this date again" : "Click to skip this date (holiday, reading week)", "aria-label": `Skip ${dayLong(day)}`, "aria-pressed": String(skipped), onclick: () => toggleSkip(day) },
         h("b", { text: DAYS[d] }), h("span", { text: skipped ? `${dayShort(day)} · skipped` : dayShort(day) })));
     }
     const gutter = h("div", { class: "gutter" });
@@ -340,7 +340,7 @@ function renderWeeks() {
           style: { top: `${top}px`, height: `${height}px`, left: `calc(${(e.c / e.n) * 100}% + 3px)`, width: `calc(${100 / e.n}% - 6px)`, animationDelay: `${Math.min(k * 30 + d * 25, 300)}ms` },
           onclick: ev => openPop(e, ev.currentTarget),
         }, h("b", { text: e.summary || "(no title)" }), height > 34 ? h("span", { text: timeRange(e.s, e.e) }) : null, height > 50 && sub ? h("span", { text: sub }) : null,
-        e.alarms.length ? h("i", { class: "al", text: "◷", "aria-label": "has a reminder" }) : null));
+        e.alarms.length ? h("i", { class: "al", text: "◷", role: "img", "aria-label": "has a reminder" }) : null));
       });
       grid.append(col);
     }
@@ -357,11 +357,13 @@ function renderWeeks() {
   setTimeout(() => { scrollLock = false; }, 150);
 }
 
+// Smooth scrolling only when neither the system nor the shared Animations switch asks for stillness.
+const smoothOk = () => !matchMedia("(prefers-reduced-motion: reduce)").matches && document.documentElement.dataset.motion !== "off";
 function goWeek(i, smooth) {
   if (!S.weeks.length) return;
   S.week = Math.max(0, Math.min(S.weeks.length - 1, i));
   const track = $("#track");
-  track.scrollTo({ left: S.week * track.clientWidth, behavior: smooth && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+  track.scrollTo({ left: S.week * track.clientWidth, behavior: smooth && smoothOk() ? "smooth" : "auto" });
   syncWeek();
 }
 function syncWeek() {
@@ -372,8 +374,10 @@ function syncWeek() {
   $("#wNext").disabled = S.week === S.weeks.length - 1;
   const chips = $("#weekChips").children;
   [...chips].forEach((c, i) => c.setAttribute("aria-selected", String(i === S.week)));
+  // Only the week on screen is in the Tab order; the others are out of view.
+  $$("#track .week").forEach((el, i) => { el.inert = i !== S.week; });
   const c = chips[S.week];
-  if (c) { const box = $("#weekChips"); const x = c.offsetLeft - box.clientWidth / 2 + c.clientWidth / 2; box.scrollTo({ left: x, behavior: "smooth" }); }
+  if (c) { const box = $("#weekChips"); const x = c.offsetLeft - box.clientWidth / 2 + c.clientWidth / 2; box.scrollTo({ left: x, behavior: smoothOk() ? "smooth" : "auto" }); }
   closePop();
 }
 let scrollTimer = 0, scrollLock = false;
@@ -407,7 +411,7 @@ function openPop(e, anchor) {
   const trig = e.alarms[0] || "";
   const mins = /PT(\d+)M/.exec(trig);
   pop.replaceChildren(
-    h("header", {}, h("h4", { text: e.summary || "(no title)" }), h("button", { class: "xbtn", type: "button", "aria-label": "Close", onclick: closePop }, "×")),
+    h("header", {}, h("h4", { text: e.summary || "(no title)" }), h("button", { class: "sd-x", type: "button", "aria-label": "Close", onclick: closePop }, "×")),
     h("dl", {},
       ...row("When", `${dayLong(e.day)}\n${timeRange(e.s, e.e)} · Toronto time`),
       ...row("Location", e.location),
@@ -425,8 +429,17 @@ function openPop(e, anchor) {
   if (left === Math.max(8, Math.min(st.width - pw - 8, a.left - st.left)) && left < a.right - st.left) top = a.bottom - st.top + 8;
   top = Math.max(8, Math.min(st.height - ph - 8, top));
   pop.style.left = `${left}px`; pop.style.top = `${top}px`;
+  // It grows out of the side its class is on.
+  const ax = a.left - st.left;
+  pop.style.setProperty("--pop-origin", left >= a.right - st.left ? "left top" : left + pw <= ax ? "right top" : "center top");
+  // Keyboard users land in the entry; closing it returns them to its class.
+  pop.querySelector(".sd-x").focus({ preventScroll: true });
 }
-function closePop() { $("#pop").hidden = true; if (popFor) popFor.classList.remove("sel"); popFor = null; }
+function closePop() {
+  const back = popFor && $("#pop").contains(document.activeElement) ? popFor : null;
+  $("#pop").hidden = true; if (popFor) popFor.classList.remove("sel"); popFor = null;
+  if (back) back.focus({ preventScroll: true });
+}
 document.addEventListener("pointerdown", e => { if (!$("#pop").hidden && !e.target.closest("#pop") && !e.target.closest(".ev")) closePop(); });
 $("#viewWeeks").addEventListener("scroll", closePop, { passive: true });
 
@@ -484,8 +497,8 @@ function showReport() {
   body.replaceChildren(...[
     h("p", { class: "rsum" }, "Found ", h("b", { text: plural(S.courseCount, "course section") }), " with ", h("b", { text: plural(S.meetings.length, "meeting pattern") }), " → ", h("b", { text: plural(S.count, "class", "classes") }), "."),
     h("p", { class: "help", text: `From the ${kind}. Term ${S.term || "unknown"}${termName(S.term) ? ` (${termName(S.term)})` : ""}. Check the preview against your schedule before importing it anywhere.` }),
-    items.length ? h("div", { class: "rsec" }, h("h4", { text: "Notes" }), h("ul", {}, ...items.map(([t, c]) => h("li", { class: c, text: t })))) : null,
-    S.meetings.length ? null : h("p", { class: "note warn", text: "No timed meetings were found. Online/asynchronous courses have no class times. If your courses do meet, try the helper or the saved page." }),
+    items.length ? h("div", { class: "rsec" }, h("h3", { text: "Notes" }), h("ul", {}, ...items.map(([t, c]) => h("li", { class: c, text: t })))) : null,
+    S.meetings.length ? null : h("p", { class: "sd-callout sd-warn", text: "No timed meetings were found. Online/asynchronous courses have no class times. If your courses do meet, try the helper or the saved page." }),
   ].filter(Boolean));
   open("#reportDlg");
 }
@@ -518,10 +531,16 @@ function toast(html, action, ms = 2600) {
   t.innerHTML = `<span>${html}</span>`;
   if (action) t.append(h("button", { type: "button", onclick: () => { hideToast(); action.run(); } }, action.label));
   t.hidden = false;
+  t.setAttribute("data-open", "");
   clearTimeout(toastTimer);
   if (ms) toastTimer = setTimeout(hideToast, ms);
 }
-function hideToast() { $("#toast").hidden = true; clearTimeout(toastTimer); }
+// data-open fades it out (the shared .sd-toast); hidden follows once the fade is done.
+function hideToast() {
+  const t = $("#toast");
+  t.removeAttribute("data-open"); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 200);
+}
 
 function startOver() {
   S.payload = null; S.info = null; S.meetings = []; S.warnings = []; S.off = new Set(); S.skip = new Set();
@@ -598,9 +617,9 @@ window.addEventListener("drop", e => {
 });
 for (const id of ["#wDrop", "#dlgDrop"]) {
   const d = $(id);
-  d.addEventListener("dragenter", () => d.classList.add("over"));
-  d.addEventListener("dragleave", () => d.classList.remove("over"));
-  d.addEventListener("drop", () => d.classList.remove("over"));
+  d.addEventListener("dragenter", () => d.setAttribute("data-over", ""));
+  d.addEventListener("dragleave", () => d.removeAttribute("data-over"));
+  d.addEventListener("drop", () => d.removeAttribute("data-over"));
 }
 
 // appearance
@@ -629,8 +648,8 @@ let skipTimer = 0;
 $("#oSkip").addEventListener("input", e => {
   clearTimeout(skipTimer);
   skipTimer = setTimeout(() => {
-    try { S.skip = OC.exclusions(e.target.value); $("#oErr").textContent = ""; e.target.classList.remove("bad"); rebuild(); }
-    catch (err) { $("#oErr").textContent = err.message.replace(/^Missing or unrecognized date: /, "Not a date: "); e.target.classList.add("bad"); }
+    try { S.skip = OC.exclusions(e.target.value); $("#oErr").textContent = ""; e.target.removeAttribute("aria-invalid"); rebuild(); }
+    catch (err) { $("#oErr").textContent = err.message.replace(/^Missing or unrecognized date: /, "Not a date: "); e.target.setAttribute("aria-invalid", "true"); }
   }, 350);
 });
 function onFallback() {
@@ -659,8 +678,8 @@ document.addEventListener("keydown", e => {
   }
   if (e.target.closest("input, textarea, select, [contenteditable]") || e.metaKey || e.ctrlKey || e.altKey) return;
   if ($$(".overlay").some(o => !o.hidden) || S.view !== "weeks" || !S.weeks.length) return;
-  if (e.key === "ArrowLeft") { e.preventDefault(); goWeek(S.week - 1, true); }
-  else if (e.key === "ArrowRight") { e.preventDefault(); goWeek(S.week + 1, true); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); goWeek(S.week - 1, false); }
+  else if (e.key === "ArrowRight") { e.preventDefault(); goWeek(S.week + 1, false); }
   else if (e.key === "t") $("#wToday").click();
 });
 
@@ -675,6 +694,10 @@ if (!(window.SiteDesign && SiteDesign.open)) {
   $("#btnTheme").addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light"));
   setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark", false);
 }
+
+// While a dialog is open the page behind it is inert, so Tab stays inside the dialog.
+new MutationObserver(() => { $("#app").inert = $$(".overlay").some(o => !o.hidden); })
+  .observe(document.body, { subtree: true, attributes: true, attributeFilter: ["hidden"] });
 
 // start
 S.parsed = { events: [], calendar: {} };
