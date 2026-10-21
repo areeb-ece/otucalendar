@@ -148,8 +148,22 @@ input[type="date"].sd-input { font-family: var(--font-mono); }
 .legend .k { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
 .legend .sw { width: 14px; height: 10px; border: 1px solid color-mix(in srgb, var(--cc) 55%, transparent); border-left: 3px solid var(--cc); border-radius: 2px; background: color-mix(in srgb, var(--cc) var(--ev-mix), var(--card)); }
 .legend .k b { font: var(--fw-text) var(--fs-1) var(--font-mono); color: var(--ink-2); }
+.legend .bwk .sw { border-left-width: 1px; background-color: transparent; }
 
 /* week chips: a bar per day, the selected week in the accent */
+/* reading week: the question (detected or not) and, once answered, one line */
+.rwbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--rule-2); background: var(--tint); font-size: var(--fs-2); color: var(--ink-2); }
+.rwbar[hidden] { display: none; }
+.rwbar.done { padding-block: var(--sp-2); background: var(--sheet); font-size: var(--fs-1); }
+.rwbar p { flex: 1 1 24rem; margin: 0; }
+.rwbar p b { color: var(--ink); }
+.rwbar .acts { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.rwweeks { display: flex; flex-wrap: wrap; gap: var(--sp-1); flex-basis: 100%; }
+.rwk { display: grid; gap: 1px; min-width: 6.2em; padding: var(--sp-1) var(--sp-2); border: 1px solid var(--rule); border-radius: var(--r-sm); background: var(--card); color: var(--ink-2); font: var(--fs-1)/1.25 var(--font-mono); text-align: left; cursor: pointer; }
+.rwk b { color: var(--ink); }
+@media (hover: hover) { .rwk:hover { border-color: var(--ink-4); } }
+.rwk[aria-checked="true"] { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--card)); }
+.wchip.rw { outline: 1px dashed var(--ink-3); outline-offset: -3px; }
 .chips { display: flex; gap: var(--sp-1); padding: var(--sp-2) var(--sp-4); overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--rule-2); background: var(--sheet); scroll-behavior: smooth; }
 .chips::-webkit-scrollbar { display: none; }
 .wchip { flex: none; display: grid; gap: var(--sp-1); justify-items: center; min-width: 44px; padding: var(--sp-1) var(--sp-2) 6px; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; cursor: pointer; color: var(--ink-3); font: var(--fw-ui) var(--fs-1)/1 var(--font-text); font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent; transition: background-color var(--dur-1), border-color var(--dur-1), color var(--dur-1), transform var(--dur-1) var(--ease-out); }
@@ -212,6 +226,10 @@ input[type="date"].sd-input { font-family: var(--font-mono); }
 .ev span { font: var(--fs-1)/1.25 var(--font-text); font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* the reminder mark: a small drawn bell in place of the text glyph */
 .ev .al { position: absolute; right: 4px; top: 4px; width: 10px; height: 10px; font-size: 0; background: var(--ink-3); -webkit-mask: var(--bell) center / contain no-repeat; mask: var(--bell) center / contain no-repeat; }
+/* Bi-weekly classes: set 1 striped, set 2 dotted, in the course colour (images draw the same).
+   After .ev:hover, whose background shorthand would otherwise clear the pattern. */
+.ev.bw1, .sw.bw1 { background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--cc) 34%, transparent) 0 1.5px, transparent 1.5px 7px); }
+.ev.bw2, .sw.bw2 { background-image: radial-gradient(circle, color-mix(in srgb, var(--cc) 55%, transparent) 1.3px, transparent 1.8px); background-size: 6px 6px; }
 :root { --bell: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 1.5a4.5 4.5 0 0 0-4.5 4.5v3L2 11.5h12L12.5 9V6A4.5 4.5 0 0 0 8 1.5ZM6.2 13a1.9 1.9 0 0 0 3.6 0Z'/%3E%3C/svg%3E"); }
 .wempty { grid-column: 2 / -1; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-1); color: var(--ink-3); }
 

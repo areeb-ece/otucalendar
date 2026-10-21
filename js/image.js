@@ -175,6 +175,15 @@ const OImage = (() => {
     return d.join(" ");
   }
 
-  return { TEXT, MONO, measure, measureParts, fit, wrap, fitScale, toCanvas, toPNG, toSVG, hatch };
+  /** A grid of dots inside a rectangle, as path data (zero-length strokes with round caps). */
+  function dots(x0, y0, w, h, step = 6) {
+    const d = [];
+    for (let j = 0, y = y0 + step / 2; y < y0 + h; j++, y += step) {
+      for (let x = x0 + (j % 2 ? step : step / 2); x < x0 + w; x += step) d.push(`M${n(x)},${n(y)} h0.01`);
+    }
+    return d.join(" ");
+  }
+
+  return { TEXT, MONO, measure, measureParts, fit, wrap, fitScale, toCanvas, toPNG, toSVG, hatch, dots };
 })();
 if (typeof module !== "undefined" && module.exports) module.exports = OImage;

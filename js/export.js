@@ -71,20 +71,30 @@ function imageScopes() {
   ];
 }
 
-/** The included meetings, each with what the picture needs: its week pattern and a letter
- * when it doesn't meet every week. */
+/** The included classes (a bi-weekly lab is one meeting per date in Banner; they're one
+ * class here), each with what the picture needs: its week pattern, its bi-weekly set, and a
+ * letter when it doesn't meet every week. */
 function imageModel(courses) {
   const on = enabled();
-  const tw = OC.termWeeks(on.map(([m]) => m), S.skip);
+  const cp = OC.classPatterns(on.map(([m]) => m), S.skip);
   let n = 0;
-  const pats = on.map(([m, mi], k) => {
-    const p = tw.patterns[k];
+  const pats = cp.classes.map(p => {
+    const [m] = on[p.members[0]];
     let title = `${m.code} · ${m.kind}`;
     try { title = OC.renderEvent(m, S.style).title; } catch (e) { /* the template error is shown on the page */ }
-    return { m, mi, p, title, keep: courses.has(m.code), color: S.colors.get(m.code) || 0 };
+    return { m, mis: p.members.map(k => on[k][1]), p, set: p.set, title, keep: courses.has(m.code), color: S.colors.get(m.code) || 0 };
   });
   for (const x of pats) if (x.keep && !x.p.weekly) { x.tag = String.fromCharCode(65 + n % 26) + (n >= 26 ? Math.floor(n / 26) + 1 : ""); n++; }
-  return { weeks: tw.weeks, pats: pats.filter(x => x.keep), byMeeting: new Map(pats.map(x => [x.mi, x])) };
+  const byMeeting = new Map();
+  for (const x of pats) for (const mi of x.mis) byMeeting.set(mi, x);
+  return { weeks: cp.weeks, sets: cp.sets, pats: pats.filter(x => x.keep), byMeeting };
+}
+/** A class's note on its block: "bi-weekly · set 1", or the weeks of a part-term class. */
+const imgNote = (x, M) => !x.tag ? "" : x.set ? (M.sets > 1 ? `bi-weekly · set ${x.set}` : "bi-weekly") : OC.weekList(x.p.weeks);
+/** Set 1 striped, set 2 dotted, in the course colour, as the preview draws them. */
+function drawSetPattern(ops, x, y, w, h, set, color, a = 0.45) {
+  if (set === 1) ops.push({ t: "path", d: OImage.hatch(x, y, w, h, 7), stroke: color, sw: 1.4, a });
+  else if (set === 2) ops.push({ t: "path", d: OImage.dots(x, y, w, h, 6), stroke: color, sw: 2.6, a: Math.min(1, a + 0.15) });
 }
 
 // ── drawing ──────────────────────────────────────────────────────────────
@@ -139,6 +149,7 @@ function drawWeekSheet(ops, P, x0, y0, g) {
 function drawBlock(ops, P, x, y, w, h, b, g) {
   const c = P.c[b.color % 8];
   ops.push({ t: "rect", x, y, w, h, r: 5, fill: mixRgb(c, P.card, P.mix) });
+  if (b.set) drawSetPattern(ops, x + 3, y + 1, w - 4, h - 2, b.set, c);
   ops.push({ t: "rect", x, y, w, h, r: 5, stroke: c, sw: 1, a: 0.5 });
   ops.push({ t: "rect", x, y, w: 3, h, r: 1.5, fill: c });
   const small = g.small, pad = 7, inner = w - pad - 5;
@@ -190,12 +201,33 @@ function drawWeekTable(ops, P, x0, y0, W, M, hiWeek) {
     ? "Day numbers are the dates each lettered class meets that week. Classes without a letter meet every week."
     : `Every class meets every week, W1–W${M.weeks.length}.`, size: 11, color: P.ink2 });
   y += 22;
+  const rwi = S.readingWeek === null ? -1 : M.weeks.indexOf(S.readingWeek);
+  if (M.sets || rwi >= 0) { // the key: a swatch per bi-weekly set and the weeks it meets, and reading week
+    let kx = x0;
+    for (let set = 1; set <= M.sets; set++) {
+      const weeks = [...new Set(rows.filter(x => x.set === set).flatMap(x => x.p.weeks))];
+      const text = `${M.sets > 1 ? `Bi-weekly set ${set}` : "Bi-weekly"}: ${OC.weekNames(weeks)}`;
+      ops.push({ t: "rect", x: kx, y: y + 1, w: 22, h: 14, r: 3, fill: P.card });
+      drawSetPattern(ops, kx + 1, y + 2, 20, 12, set, P.ink3, 0.8);
+      ops.push({ t: "rect", x: kx, y: y + 1, w: 22, h: 14, r: 3, stroke: P.rule, sw: 1 });
+      ops.push({ t: "text", x: kx + 30, y: y + 12, text, size: 11, color: P.ink2 });
+      kx += 30 + OImage.measure(text, 11) + 26;
+    }
+    if (rwi >= 0) {
+      const text = `Reading week: W${rwi + 1}, ${fullWeek(S.readingWeek)} (no classes)`;
+      ops.push({ t: "rect", x: kx, y: y + 1, w: 22, h: 14, r: 3, fill: P.accent, a: 0.18 });
+      ops.push({ t: "rect", x: kx, y: y + 1, w: 22, h: 14, r: 3, stroke: P.accent, sw: 1, dash: [3, 2] });
+      ops.push({ t: "text", x: kx + 30, y: y + 12, text, size: 11, color: P.ink2 });
+    }
+    y += 22;
+  }
   for (const [a, b] of chunks) {
     const n = b - a, tableH = headH + (rows.length + (anySkip ? 1 : 0)) * rowH;
     ops.push({ t: "rect", x: x0, y, w: labelW + n * cellW, h: tableH, r: 8, fill: P.head });
     for (let i = a; i < b; i++) {
       const cx = x0 + labelW + (i - a) * cellW;
       if (i === hiWeek) ops.push({ t: "rect", x: cx, y, w: cellW, h: tableH, fill: P.accent, a: 0.12 });
+      if (M.weeks[i] === S.readingWeek) ops.push({ t: "rect", x: cx + 1, y: y + 1, w: cellW - 2, h: tableH - 2, r: 4, stroke: P.accent, sw: 1, dash: [3, 2] });
       ops.push({ t: "path", d: `M${cx},${y} V${y + tableH}`, stroke: P.rule2, sw: 1 });
       ops.push({ t: "text", x: cx + 7, y: y + 16, text: `W${i + 1}`, size: 11.5, weight: 700, color: i === hiWeek ? P.accent : P.ink, mono: true });
       // "Sep 28" over "–Oct 2", or "Sep 7" over "–11": the week's first and last class day
@@ -210,6 +242,7 @@ function drawWeekTable(ops, P, x0, y0, W, M, hiWeek) {
     for (const x of rows) {
       const c = P.c[x.color % 8];
       ops.push({ t: "rect", x: x0 + 8, y: ry + 4, w: 20, h: 14, r: 3.5, fill: c, a: 0.3 });
+      if (x.set) drawSetPattern(ops, x0 + 9, ry + 5, 18, 12, x.set, c, 0.6);
       ops.push({ t: "text", x: x0 + 18, y: ry + 15, text: x.tag, size: 10, weight: 700, color: P.ink, anchor: "middle", mono: true });
       ops.push({ t: "text", x: x0 + 34, y: ry + 15, text: OImage.fit(label(x), labelW - 42, 10.5), size: 10.5, color: P.ink2 });
       for (let i = a; i < b; i++) {
@@ -233,6 +266,7 @@ function drawWeekTable(ops, P, x0, y0, W, M, hiWeek) {
         const s = skipDays[i];
         if (!s.length) continue;
         const cx = x0 + labelW + (i - a) * cellW;
+        if (M.weeks[i] === S.readingWeek) { ops.push({ t: "text", x: cx + 7, y: ry + 15, text: OImage.fit("reading", cellW - 10, 10.5, 600), size: 10.5, weight: 600, color: P.accent }); continue; }
         const first = OC.ymd(s[0]).d, last = OC.ymd(s[s.length - 1]).d;
         const t = s.length === 1 ? String(first) : s.every((d, k) => !k || d === s[k - 1] + 1) ? `${first}–${last}` : s.map(d => OC.ymd(d).d).join(" ");
         ops.push({ t: "text", x: cx + 7, y: ry + 15, text: OImage.fit(t, cellW - 10, 10.5, 400, true), size: 10.5, color: P.danger, mono: true });
@@ -251,7 +285,7 @@ function buildImageSpec(o) {
   const M = imageModel(o.courses);
   if (!M.pats.length) throw new Error("Pick at least one course.");
   const termDays = M.pats.some(x => x.m.days.some(d => d >= 5)) ? 7 : 5;
-  const block = (x, s, e, extra) => ({ s, e, color: x.color, tag: x.tag, title: x.title, time: timeRange(s % 1440, e % 1440 || 1440), room: o.rooms ? OC.roomLabel(x.m.buildingCode, x.m.room) || x.m.location : "", note: x.tag ? OC.weekList(x.p.weeks) : "", ...extra });
+  const block = (x, s, e, extra) => ({ s, e, color: x.color, tag: x.tag, set: x.set, title: x.title, time: timeRange(s % 1440, e % 1440 || 1440), room: o.rooms ? x.p.rooms.join(" / ") : "", note: imgNote(x, M), ...extra });
   // the sheets to draw, each with its blocks
   let sheets;
   if (o.scope === "term") {

@@ -171,3 +171,40 @@ test("editable schedule saves and reloads to the same meetings", () => {
   const again = OC.normalize(JSON.parse(JSON.stringify(OC.editableSchedule(meetings)))).meetings;
   assert.deepEqual(again, meetings);
 });
+
+test("classes and bi-weekly sets: one class per course, section, day and time; reading week", () => {
+  const mt = (kind, days, from, to, time = ["11:10 AM", "12:30 PM"], room = "SCI1350") => ({ kind, days, start_time: time[0], end_time: time[1], start_date: from, end_date: to, building_code: "SCI", room });
+  const dates = (list, day, kind, room) => list.map((d, i) => mt(kind, [day], `${d}/2027`, `${d}/2027`, undefined, room && i % 2 ? room : "SCI3420"));
+  const schedule = courses => OC.normalize({ format: "ontario-tech-calendar-v1", timezone: "America/Toronto", term: "202701", courses }).meetings;
+  const meetings = schedule([
+    { crn: "70001", code: "DEMO 2100U", title: "Lecture", meetings: [mt("Lecture", ["Tue", "Thu"], "01/11/2027", "04/09/2027")] },
+    // two labs a fortnight apart; one changes room every other time, which is still one class
+    { crn: "70002", code: "DEMO 2100U", title: "Lab", meetings: dates(["01/13", "01/27", "02/10", "03/03", "03/17", "03/31"], "Wed", "Laboratory", "SCI2120") },
+    { crn: "70003", code: "DEMO 2200U", title: "Lab", meetings: dates(["01/18", "02/01", "02/22", "03/08", "03/22", "04/05"], "Mon", "Laboratory") },
+  ]);
+  const cp = OC.classPatterns(meetings);
+  assert.equal(cp.classes.length, 3);
+  const lab = cp.classes.find(c => meetings[c.members[0]].crn === "70002");
+  assert.equal(lab.members.length, 6);
+  assert.deepEqual(lab.rooms, ["SCI 3420", "SCI 2120"].map(r => r.replace(" ", "")));
+  assert.deepEqual([lab.biweekly, lab.set, OC.weekList(lab.weeks)], [true, 1, "W1, W3, W5, W8, W10, W12"]);
+  const other = cp.classes.find(c => meetings[c.members[0]].crn === "70003");
+  assert.deepEqual([other.biweekly, other.set, OC.weekList(other.weeks)], [true, 2, "W2, W4, W7, W9, W11, W13"]);
+  assert.equal(cp.sets, 2);
+  assert.equal(cp.classes.find(c => meetings[c.members[0]].kind === "Lecture").weekly, true);
+  // Neither set meets in W6, though the lecture is still listed then: that's reading week.
+  assert.equal(OC.readingWeek(cp), 5);
+  // Skipping it leaves every class as it was: weekly classes stay weekly.
+  const skipped = OC.classPatterns(meetings, OC.exclusions("2027-02-15..2027-02-19"));
+  assert.deepEqual(skipped.classes.map(c => [c.weekly, c.set]), cp.classes.map(c => [c.weekly, c.set]));
+
+  // A lecture Banner lists in two parts around a week with nothing in it: still weekly, and the gap is the break.
+  const split = OC.classPatterns(schedule([{ crn: "70004", code: "DEMO 2300U", title: "x", meetings: [mt("Lecture", ["Mon"], "01/11/2027", "02/12/2027"), mt("Lecture", ["Mon"], "02/22/2027", "04/09/2027")] }]));
+  assert.deepEqual([split.classes.length, split.classes[0].weekly, split.empty, OC.readingWeek(split)], [1, true, [5], 5]);
+  // Two parts of term with a week between them aren't a break: nothing to detect, so the page asks.
+  const parts = OC.classPatterns(schedule([
+    { crn: "70005", code: "DEMO 2400U", title: "x", meetings: [mt("Lecture", ["Tue"], "05/05/2025", "06/13/2025")] },
+    { crn: "70006", code: "DEMO 2500U", title: "x", meetings: [mt("Lecture", ["Tue"], "06/23/2025", "08/05/2025")] },
+  ]));
+  assert.deepEqual([parts.empty, OC.readingWeek(parts)], [[], -1]);
+});

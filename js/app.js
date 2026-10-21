@@ -57,6 +57,8 @@ const S = {
   style: loadStyle(), reminder: null, calName: "Ontario Tech Courses", skip: new Set(),
   ics: "", count: 0, buildErr: "", templateErr: "", parsed: null, uidMeeting: new Map(),
   weeks: [], week: 0, view: "weeks", pasteHtml: null, pasteText: "",
+  // reading week: the Monday of the confirmed one, and whether the question was answered
+  readingWeek: null, rwAnswered: false, rwPick: null,
 };
 
 function loadStyle() {
@@ -72,7 +74,12 @@ const enabled = () => S.meetings.map((m, i) => [m, i]).filter(([, i]) => !S.off.
 const colorOf = m => `var(--c${(S.colors.get(m.code) || 0) % 8})`;
 
 // ── import ───────────────────────────────────────────────────────────────
-const parseHtml = html => new DOMParser().parseFromString(html, "text/html");
+// Banner's pages are full of inline styles and stylesheet links. Nothing in a DOMParser document
+// is applied, but the page's CSP still reports each one, so they're dropped before parsing.
+const parseHtml = html => new DOMParser().parseFromString(String(html)
+  .replace(/<style\b[\s\S]*?<\/style\s*>/gi, "")
+  .replace(/<link\b[^>]*>/gi, "")
+  .replace(/(<[a-z][^>]*?)\sstyle\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "$1"), "text/html");
 
 function importFrom(src, { fileName = "", forceHtml = false, statusEl = null } = {}) {
   const status = (msg, err) => { if (statusEl) { statusEl.textContent = msg; statusEl.classList.toggle("err", !!err); } };
@@ -103,6 +110,7 @@ function loadPayload(payload, info) {
   S.payload = payload; S.info = info; S.term = info.term || "";
   S.fallback = { start: null, end: null };
   S.skip = new Set(); $("#oSkip").value = ""; $("#oErr").textContent = "";
+  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null;
   $("#fbStart").value = ""; $("#fbEnd").value = "";
   normalizeNow();
   S.week = -1;
@@ -152,7 +160,11 @@ function rebuild() {
 }
 
 function buildWeeks() {
-  const on = enabled().map(([m]) => m);
+  // Classes (a bi-weekly lab is one meeting per date in Banner) and their week patterns.
+  const pairs = enabled();
+  S.pat = OC.classPatterns(pairs.map(([m]) => m), S.skip);
+  S.classOf = new Map(pairs.map(([, mi], k) => [mi, S.pat.of[k]]));
+  const on = pairs.map(([m]) => m);
   const evs = S.parsed.events.map(e => {
     const a = OC.localOf(e.start), b = OC.localOf(e.end);
     return { ...e, day: a.day, s: a.mins, e: b.day > a.day ? 24 * 60 : Math.max(b.mins, a.mins + 15), mi: S.uidMeeting.get(e.uid) };
@@ -190,7 +202,7 @@ function render() {
     ? [S.term ? `${S.term}${termName(S.term) ? " · " + termName(S.term) : ""}` : "Term unknown", plural(S.colors.size, "course"), plural(S.count, "class", "classes")].join(" · ")
     : "No schedule loaded";
   renderLegend(); renderFacts(); renderAppearance(); renderMeetings(); renderNotes();
-  renderWeeks(); renderIcs();
+  renderReadingWeek(); renderWeeks(); renderIcs();
 }
 
 function renderLegend() {
@@ -200,6 +212,21 @@ function renderLegend() {
   const titles = new Map();
   for (const m of S.meetings) if (!titles.has(m.code)) titles.set(m.code, m.title);
   for (const [code, i] of S.colors) el.append(h("span", { class: "k", vars: { "--cc": `var(--c${i % 8})` }, title: titles.get(code) || "" }, h("span", { class: "sw" }), h("b", { text: code })));
+  // The bi-weekly sets: striped meets in one set of weeks, dotted in the other.
+  for (let set = 1; S.pat && set <= S.pat.sets; set++) {
+    const cls = S.pat.classes.filter(c => c.set === set);
+    const weeks = [...new Set(cls.flatMap(c => c.weeks))];
+    const names = [...new Set(cls.map(c => { const m = S.meetings[[...S.classOf].find(([, x]) => x === c)[0]]; return `${m.code} ${OC.valuesFor(m).TypeShort}`; }))];
+    el.append(h("span", { class: "k bwk", vars: { "--cc": "var(--ink-3)" }, title: `${names.join(", ")} meet in these weeks` },
+      h("span", { class: `sw bw${set}` }), h("b", { text: `${setName(set)} · ${OC.weekNames(weeks)}` })));
+  }
+}
+/** "Bi-weekly" or "Bi-weekly, set 1" (when two sets meet in different weeks). */
+const setName = set => S.pat && S.pat.sets > 1 ? `Bi-weekly set ${set}` : "Bi-weekly";
+/** When a class meets, for the ones that don't meet every week: "Bi-weekly set 1: W1, W3, …" or "W2–W13". */
+function meetsText(c) {
+  if (!c || c.weekly) return "";
+  return c.set ? `${setName(c.set)}: ${OC.weekNames(c.weeks)}` : OC.weekList(c.weeks);
 }
 
 function renderFacts() {
@@ -304,6 +331,66 @@ function layoutDay(evs) {
   return out;
 }
 
+// ── reading week ─────────────────────────────────────────────────────────
+// Banner doesn't mark reading week, and often still lists lectures in it. When the schedule
+// gives it away (a week mid-term with nothing in it, or the one week both bi-weekly sets skip),
+// ask whether to leave it out; otherwise offer to pick it. Confirming skips every class that week.
+const classWeek = start => { const a = OC.ymd(start), b = OC.ymd(start + (S.layout && S.layout.days === 7 ? 6 : 4)); return a.m === b.m ? `${MONTHS[a.m - 1]} ${a.d}–${b.d}` : `${MONTHS[a.m - 1]} ${a.d}–${MONTHS[b.m - 1]} ${b.d}`; };
+const weekNo = start => S.weeks.findIndex(w => w.start === start) + 1;
+function rwGuess() {
+  if (!S.pat || !S.pat.weeks.length) return null;
+  const i = OC.readingWeek(S.pat);
+  return i < 0 ? null : { start: S.pat.weeks[i], why: S.pat.empty.includes(i) ? "empty" : "biweekly" };
+}
+function setReadingWeek(start) {
+  const days = S.layout && S.layout.days === 7 ? 7 : 5;
+  if (S.readingWeek !== null) for (let d = 0; d < 7; d++) S.skip.delete(S.readingWeek + d); // a different week replaces it
+  S.readingWeek = start; S.rwAnswered = true; S.rwPick = null;
+  if (start !== null) for (let d = 0; d < days; d++) S.skip.add(start + d);
+  $("#oSkip").value = OC.exclusionText(S.skip);
+  $("#oErr").textContent = "";
+  rebuild();
+}
+function renderReadingWeek() {
+  const bar = $("#rwBar");
+  bar.replaceChildren();
+  bar.hidden = true;
+  if (!S.payload || S.weeks.length < 6) return;
+  const guess = rwGuess();
+  const btn = (text, run, primary) => h("button", { type: "button", class: `sd-btn sd-small${primary ? " sd-primary" : " sd-ghost"}`, text, onclick: run });
+  if (S.readingWeek !== null) {
+    const n = weekNo(S.readingWeek);
+    bar.append(h("p", {}, h("b", { text: `Reading week: W${n}, ${classWeek(S.readingWeek)}.` }), " Every class that week is left out of the calendar."),
+      h("div", { class: "acts" }, btn("Change week", () => { const was = S.readingWeek; setReadingWeek(null); S.rwAnswered = false; S.rwPick = was; renderReadingWeek(); }),
+        btn("Undo", () => { const was = S.readingWeek; setReadingWeek(null); S.rwAnswered = false; toast(`W${weekNo(was)} is back in the calendar`); })));
+    bar.className = "rwbar done"; bar.hidden = false;
+    return;
+  }
+  if (S.rwAnswered && S.rwPick === null) return;
+  if (guess && S.rwPick === null) {
+    const w = S.weeks.find(x => x.start === guess.start), listed = w ? w.events.length : 0;
+    bar.append(h("p", {}, h("b", { text: `Is W${weekNo(guess.start)}, ${classWeek(guess.start)}, reading week?` }), " ",
+      guess.why === "empty" ? "Nothing on your schedule meets that week." : `Neither set of bi-weekly classes meets that week${listed ? `, though ${plural(listed, "lecture or tutorial is", "lectures and tutorials are")} still listed in it` : ""}.`,
+      listed ? " Confirming leaves every class that week out of the calendar." : ""),
+      h("div", { class: "acts" }, btn(`Yes, skip W${weekNo(guess.start)}`, () => { setReadingWeek(guess.start); toast(`W${weekNo(guess.start)} is reading week: no classes`, { label: "Undo", run: () => { setReadingWeek(null); S.rwAnswered = false; render(); } }, 4000); }, true),
+        btn("It's a different week", () => { S.rwPick = guess.start; renderReadingWeek(); }),
+        btn("No reading week", () => { S.rwAnswered = true; renderReadingWeek(); })));
+  } else {
+    // pick it: every week, with its dates
+    const pick = S.rwPick ?? null;
+    const grid = h("div", { class: "rwweeks", role: "radiogroup", "aria-label": "Reading week" },
+      ...S.weeks.map((w, i) => h("button", { type: "button", role: "radio", class: "rwk", "aria-checked": String(w.start === pick), onclick: () => { S.rwPick = w.start; renderReadingWeek(); } },
+        h("b", { text: `W${i + 1}` }), h("span", { text: classWeek(w.start) }))));
+    bar.append(h("p", {}, h("b", { text: "Is there a reading week this term?" }), " Your schedule doesn't say. Pick the week to leave every class out of it."),
+      grid,
+      h("div", { class: "acts" },
+        btn(pick !== null ? `Skip W${weekNo(pick)}, ${classWeek(pick)}` : "Pick a week first", () => { if (pick !== null) setReadingWeek(pick); }, true),
+        btn("No reading week", () => { S.rwAnswered = true; S.rwPick = null; renderReadingWeek(); })));
+    bar.querySelector(".acts .sd-primary").disabled = pick === null;
+  }
+  bar.className = "rwbar"; bar.hidden = false;
+}
+
 function renderWeeks() {
   const track = $("#track"), chips = $("#weekChips");
   track.replaceChildren(); chips.replaceChildren();
@@ -335,8 +422,9 @@ function renderWeeks() {
         const m = S.meetings[e.mi] || {};
         const top = (e.s - h0 * 60) / 60 * HOUR, height = Math.max(20, (e.e - e.s) / 60 * HOUR - 2);
         const sub = e.location || (e.description || "").split("\n")[0];
+        const cl = S.classOf.get(e.mi), meets = meetsText(cl);
         col.append(h("button", {
-          type: "button", class: "ev", title: `${e.summary}\n${timeRange(e.s, e.e)}${sub ? "\n" + sub : ""}`,
+          type: "button", class: `ev${cl && cl.set ? " bw" + cl.set : ""}`, title: `${e.summary}\n${timeRange(e.s, e.e)}${sub ? "\n" + sub : ""}${meets ? "\n" + meets : ""}`,
           vars: { "--cc": m.code ? colorOf(m) : "var(--accent)" },
           style: { top: `${top}px`, height: `${height}px`, left: `calc(${(e.c / e.n) * 100}% + 3px)`, width: `calc(${100 / e.n}% - 6px)`, animationDelay: `${Math.min(k * 30 + d * 25, 300)}ms` },
           onclick: ev => openPop(e, ev.currentTarget),
@@ -345,11 +433,11 @@ function renderWeeks() {
       });
       grid.append(col);
     }
-    if (!w.events.length) grid.append(h("div", { class: "wempty", text: S.skip.size ? "No classes this week (all skipped)." : "No classes this week." }));
+    if (!w.events.length) grid.append(h("div", { class: "wempty", text: w.start === S.readingWeek ? "Reading week: no classes." : S.skip.size ? "No classes this week (all skipped)." : "No classes this week." }));
     track.append(h("section", { class: "week", "aria-label": `Week of ${weekRange(w.start)}` }, grid));
     const counts = Array.from({ length: days }, (_, d) => w.events.filter(e => e.day === w.start + d).length);
     const max = Math.max(1, ...S.weeks.map(x => x.events.length ? Math.max(...Array.from({ length: days }, (_, d) => x.events.filter(e => e.day === x.start + d).length)) : 0));
-    chips.append(h("button", { type: "button", role: "tab", class: "wchip" + (today >= w.start && today < w.start + 7 ? " now" : ""), "aria-selected": "false", title: `${weekRange(w.start)} · ${plural(w.events.length, "class", "classes")}`, onclick: () => goWeek(wi, true) },
+    chips.append(h("button", { type: "button", role: "tab", class: "wchip" + (today >= w.start && today < w.start + 7 ? " now" : "") + (w.start === S.readingWeek ? " rw" : ""), "aria-selected": "false", title: `${weekRange(w.start)} · ${w.start === S.readingWeek ? "reading week" : plural(w.events.length, "class", "classes")}`, onclick: () => goWeek(wi, true) },
       h("span", { text: `W${wi + 1}` }), h("span", { class: "bars" }, ...counts.map(c => h("i", { style: { height: `${2 + (c / max) * 12}px` } })))));
   });
   // Replacing the weeks resets the track to week 1; put it back before anything paints.
@@ -370,7 +458,10 @@ function goWeek(i, smooth) {
 function syncWeek() {
   const w = S.weeks[S.week];
   if (!w) return;
-  $("#wLabel").replaceChildren(h("b", { text: `Week ${S.week + 1} of ${S.weeks.length}` }), h("span", { text: `${weekRange(w.start)} · ${plural(w.events.length, "class", "classes")}` }));
+  // which bi-weekly sets meet this week
+  const pi = S.pat && S.pat.weeks.length ? Math.round((w.start - S.pat.weeks[0]) / 7) : -1;
+  const sets = S.pat && S.pat.sets > 1 ? [...new Set(S.pat.classes.filter(c => c.set && c.weeks.includes(pi)).map(c => c.set))].sort() : [];
+  $("#wLabel").replaceChildren(h("b", { text: `Week ${S.week + 1} of ${S.weeks.length}` }), h("span", { text: `${weekRange(w.start)} · ${plural(w.events.length, "class", "classes")}${sets.length ? ` · bi-weekly set ${sets.join(" & ")}` : ""}` }));
   $("#wPrev").disabled = S.week === 0;
   $("#wNext").disabled = S.week === S.weeks.length - 1;
   const chips = $("#weekChips").children;
@@ -418,6 +509,7 @@ function openPop(e, anchor) {
       ...row("Location", e.location),
       ...row("Notes", e.description),
       ...row("Reminder", trig ? (mins ? `${mins[1]} min before` : "at start") : ""),
+      ...row("Meets", meetsText(S.classOf.get(e.mi))),
       ...row("From", m.code ? `${m.code} · ${m.kind}${m.crn ? ` · CRN ${m.crn}` : ""}` : ""),
       ...row("UID", (e.uid || "").slice(0, 16) + "…")));
   pop.style.setProperty("--cc", m.code ? colorOf(m) : "var(--accent)");
@@ -545,6 +637,7 @@ function hideToast() {
 
 function startOver() {
   S.payload = null; S.info = null; S.meetings = []; S.warnings = []; S.off = new Set(); S.skip = new Set();
+  S.readingWeek = null; S.rwAnswered = false; S.rwPick = null;
   S.ics = ""; S.count = 0; S.parsed = { events: [], calendar: {} }; S.weeks = []; S.layout = null; S.term = ""; S.colors = new Map();
   $("#pasteText").value = ""; S.pasteHtml = null; $("#oSkip").value = "";
   render(); closePop();

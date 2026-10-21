@@ -125,9 +125,10 @@ const server = http.createServer((req, res) => {
     assert.equal(scopes[2], "All 14 weeks");
     assert.equal(await page.$$eval("#imgCourses input", i => i.length), 4, "a checkbox per course");
     assert.match(await page.textContent("#imgDims"), /^[\d,]+ × [\d,]+ px$/);
-    // The week table gives the alternating lab's exact dates: W2, W4 … W12, struck out when skipped.
+    // The week table gives the alternating lab's exact dates: W2, W4 … W12, struck out when skipped;
+    // the lab is drawn once, striped, with the weeks it meets in the key.
     const spec = await page.evaluate(() => buildImageSpec(imageOptions()).ops.filter(o => o.t === "text").flatMap(o => (o.parts ? o.parts.map(p => p.text) : [o.text])));
-    for (const t of ["alternate weeks, W2–W12", "W14", "Skipped (no classes)", "12–16", "made by areeb · ", "areeb-ece.github.io/otucalendar"]) assert.ok(spec.includes(t), `image has "${t}"`);
+    for (const t of ["Bi-weekly: W2, W4, W6, W8, W10, W12", "bi-weekly", "W14", "Skipped (no classes)", "12–16", "made by areeb · ", "areeb-ece.github.io/otucalendar"]) assert.ok(spec.includes(t), `image has "${t}"`);
     const saveImage = async () => {
       const dl = page.waitForEvent("download");
       await page.click("#imgGo");
@@ -152,6 +153,34 @@ const server = http.createServer((req, res) => {
     const one = await saveImage();
     assert.match(one.name, /^ontario-tech-202609-week-\d+\.png$/);
     console.log(`ok image export: ${png.name} (${png.data.length} bytes), ${svg.name}, ${one.name}`);
+
+    // Banner's current paste (subjects spelled out, a bi-weekly lab as one meeting per date):
+    // every class lands in its own course, the two bi-weekly sets give away reading week, and
+    // confirming it leaves that week empty without making the weekly classes irregular.
+    await page.click("#btnHome");
+    await page.click('#welcomeDlg [data-import-tab="paste"]');
+    await page.fill("#pasteText", fs.readFileSync(path.join(ROOT, "samples/schedule-details-paste.example.txt"), "utf8"));
+    if (await page.isVisible("#btnPasteImport")) await page.click("#btnPasteImport");
+    await page.waitForSelector("#reportDlg:not([hidden])");
+    await page.click("#reportDlg footer .sd-primary");
+    const p = await page.evaluate(() => ({ codes: [...S.colors.keys()], crns: [...new Set(S.meetings.map(m => m.crn))].sort(), sets: S.pat.sets, count: S.count }));
+    assert.deepEqual(p.codes, ["DEMO 1800U", "DEMO 2100U"]);
+    assert.deepEqual(p.crns, ["70001", "70002", "70011", "70012"]);
+    assert.equal(p.sets, 2);
+    assert.match(await page.textContent("#rwBar"), /Is W6, Feb 15–19, reading week\?/);
+    await page.click("#rwBar .sd-primary");
+    const after = await page.evaluate(() => ({ count: S.count, rw: OC.isoDay(S.readingWeek), weekly: S.pat.classes.filter(c => c.weekly).length, ev: S.weeks[5].events.length }));
+    assert.deepEqual(after, { count: p.count - 4, rw: "2027-02-15", weekly: 4, ev: 0 }, "the four lectures listed in W6 are gone");
+    assert.match(await page.textContent("#rwBar"), /Reading week: W6, Feb 15–19/);
+    assert.equal(await page.$$eval("#track .ev.bw1, #track .ev.bw2", e => e.length), 12, "bi-weekly classes are patterned");
+    await page.click("#btnImage");
+    await page.waitForSelector("#imageDlg:not([hidden])");
+    await page.click("#imgScope [data-v=term]");
+    const term = await page.evaluate(() => buildImageSpec(imageOptions()).ops.filter(x => x.t === "text").map(x => x.text));
+    await page.click("#imageDlg [data-close]");
+    for (const t of ["Bi-weekly set 1: W1, W3, W5, W8, W10, W12", "Bi-weekly set 2: W2, W4, W7, W9, W11, W13", "Reading week: W6, Feb 15–19 (no classes)", "bi-weekly · set 1"]) assert.ok(term.includes(t), `term image has "${t}"`);
+    assert.deepEqual(["bi-weekly · set 1", "bi-weekly · set 2"].map(n => term.filter(t => t === n).length), [1, 1], "each bi-weekly lab is one block, not one per date");
+    console.log(`ok Banner paste: ${p.crns.length} sections, reading week W6 confirmed, ${after.count} events`);
 
     // "by areeb" goes to the portfolio; the phone layout still has room for the image button
     assert.equal(await page.getAttribute(".brandline .by", "href"), "https://areeb-ece.github.io/");
