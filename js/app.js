@@ -48,7 +48,6 @@ function termName(t) {
   if (!m) return "";
   return { "01": "Winter", "05": "Spring/Summer", "09": "Fall" }[m[2]] ? `${{ "01": "Winter", "05": "Spring/Summer", "09": "Fall" }[m[2]]} ${m[1]}` : "";
 }
-const kb = n => (n < 1024 ? `${n} B` : `${(n / 1024).toFixed(1)} KB`);
 
 // ── state ────────────────────────────────────────────────────────────────
 const S = {
@@ -229,7 +228,7 @@ function render() {
   $("#btnSaveJson").disabled = !has || !S.meetings.length;
   $("#btnImage").disabled = !S.ics;
   $("#sheetInfo").textContent = has
-    ? [S.term ? `${S.term}${termName(S.term) ? " · " + termName(S.term) : ""}` : "Term unknown", plural(S.colors.size, "course"), plural(S.count, "class", "classes")].join(" · ")
+    ? [plural(S.colors.size, "course"), termName(S.term) || S.term || "Term unknown", "Toronto time"].join(" · ")
     : "No schedule loaded";
   renderLegend(); renderFacts(); renderAppearance(); renderMeetings(); renderNotes();
   renderReadingWeek(); renderWeeks(); renderIcs();
@@ -271,18 +270,14 @@ function renderFacts() {
   el.replaceChildren();
   if (!S.payload) return;
   const on = enabled().map(([m]) => m);
-  const src = { page: "from the page", file: "from the file", dates: "guessed from class dates" }[S.info && S.info.termSource] || "";
   const row = (k, ...v) => [h("dt", { text: k }), h("dd", {}, ...v)];
   const evs = S.parsed ? S.parsed.events : [];
   el.append(
-    ...row("Term", h("b", { text: S.term || "unknown" }), S.term && termName(S.term) ? ` ${termName(S.term)}` : "", src ? h("span", { class: "tiny" }, ` · ${src}`) : ""),
-    ...row("Sections", `${S.courseCount} · ${plural(S.meetings.length, "meeting pattern")}${S.off.size ? ` (${S.off.size} off)` : ""}`),
-    ...row("Events", h("b", { text: String(S.count) }), S.ics ? ` · ${kb(new TextEncoder().encode(S.ics).length)}` : ""),
+    ...row("Events", h("b", { text: String(S.count) })),
   );
   if (evs.length) {
     el.append(...row("Classes", `${dayShort(OC.localOf(evs[0].start).day)} → ${dayShort(OC.localOf(evs[evs.length - 1].start).day)}`));
   }
-  el.append(...row("Skipped", S.skip.size ? plural(S.skip.size, "date") : "none"));
   if (!on.length || S.buildErr) el.append(...row("Status", h("span", { class: "err", text: S.buildErr || "Nothing to export." })));
 }
 
@@ -322,7 +317,6 @@ function applyPreset(name) {
 function renderMeetings() {
   const el = $("#meetings");
   el.replaceChildren();
-  $("#meetCount").textContent = S.meetings.length ? `${S.meetings.length - S.off.size}/${S.meetings.length}` : "";
   S.meetings.forEach((m, i) => {
     const room = OC.roomLabel(m.buildingCode, m.room) || m.location;
     const interval = h("select", { class: "sd-select sd-small", "aria-label": `Repeat for ${m.code} ${m.kind}`, onchange: e => { m.intervalWeeks = +e.target.value; rebuild(); } },
@@ -341,12 +335,11 @@ function renderNotes() {
   const items = [];
   for (const n of (S.info && S.info.notes) || []) items.push([n, ""]);
   for (const w of S.warnings) items.push([w, "w"]);
-  if (S.info && S.info.termSource === "dates" && S.info.kind !== "manual") items.push([`The term code wasn't on the page, so ${S.term} was guessed from the class dates. It only appears in {Term} and the event IDs.`, ""]);
+  if (S.info && S.info.termSource === "dates" && S.info.kind !== "manual") items.push([`The term wasn't on the page, so ${termName(S.term) || S.term} was guessed from the class dates. Its code, ${S.term}, only appears in {Term} and the event IDs.`, ""]);
   const missing = new Map();
   if (!S.templateErr) for (const [m] of enabled()) { try { for (const f of OC.renderEvent(m, S.style).missing) missing.set(f, (missing.get(f) || 0) + 1); } catch (e) {} }
   for (const [f, n] of missing) items.push([`{${f}} is empty for ${plural(n, "meeting")}; that part of the text is left out.`, "w"]);
   $("#pNotes").hidden = !items.length;
-  $("#noteCount").textContent = items.length || "";
   $("#notes").replaceChildren(...items.map(([t, c]) => h("li", { class: c, text: t })));
 }
 
@@ -506,7 +499,7 @@ function syncWeek() {
   // which bi-weekly sets meet this week
   const pi = S.pat && S.pat.weeks.length ? Math.round((w.start - S.pat.weeks[0]) / 7) : -1;
   const sets = S.pat && S.pat.sets > 1 ? [...new Set(S.pat.classes.filter(c => c.set && c.weeks.includes(pi)).map(c => c.set))].sort() : [];
-  $("#wLabel").replaceChildren(h("b", { text: `Week ${S.week + 1} of ${S.weeks.length}` }), h("span", { text: `${weekRange(w.start)} · ${plural(w.events.length, "class", "classes")}${sets.length ? ` · bi-weekly set ${sets.join(" & ")}` : ""}` }));
+  $("#wLabel").replaceChildren(h("b", { text: `Week ${S.week + 1}` }), h("span", { text: `${weekRange(w.start)}${sets.length ? ` · bi-weekly set ${sets.join(" & ")}` : ""}` }));
   $("#wPrev").disabled = S.week === 0;
   $("#wNext").disabled = S.week === S.weeks.length - 1;
   const chips = $("#weekChips").children;
@@ -592,7 +585,7 @@ function renderIcs() {
     const i = line.search(/[:;]/);
     return i > 0 ? `<span class="p">${esc(line.slice(0, i))}</span>${esc(line.slice(i))}` : esc(line);
   }).join("\n");
-  $("#icsInfo").textContent = `${fileName("ics")} · ${plural(S.count, "event")} · ${kb(new TextEncoder().encode(S.ics).length)} · times in UTC (Z), shown in Toronto time by your calendar`;
+  $("#icsInfo").textContent = `${fileName("ics")} · times in UTC (Z), shown in Toronto time by your calendar`;
 }
 function setView(v) {
   S.view = v;
@@ -634,7 +627,7 @@ function showReport() {
   const items = [...(S.info.notes || []).map(n => [n, ""]), ...S.warnings.map(w => [w, "w"])];
   body.replaceChildren(...[
     h("p", { class: "rsum" }, "Found ", h("b", { text: plural(S.courseCount, "course section") }), " with ", h("b", { text: plural(S.meetings.length, "meeting pattern") }), " → ", h("b", { text: plural(S.count, "class", "classes") }), "."),
-    h("p", { class: "help", text: `From the ${kind}. Term ${S.term || "unknown"}${termName(S.term) ? ` (${termName(S.term)})` : ""}. Check the preview against your schedule before importing it anywhere.` }),
+    h("p", { class: "help", text: `From the ${kind}. Term: ${termName(S.term) || S.term || "unknown"}. Check the preview against your schedule before importing it anywhere.` }),
     items.length ? h("div", { class: "rsec" }, h("h3", { text: "Notes" }), h("ul", {}, ...items.map(([t, c]) => h("li", { class: c, text: t })))) : null,
     S.meetings.length ? null : h("p", { class: "sd-callout sd-warn", text: "No timed meetings were found. Online/asynchronous courses have no class times. If your courses do meet, try the saved page, or enter them by hand." }),
   ].filter(Boolean));

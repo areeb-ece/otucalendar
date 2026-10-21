@@ -64,7 +64,6 @@ p { margin: 0; }
 .side { min-height: 0; overflow: auto; overscroll-behavior: contain; background: var(--sheet); border-right: 1px solid var(--rule-2); scrollbar-width: thin; }
 .panel { display: grid; gap: var(--sp-3); padding: var(--sp-5); border-bottom: 1px solid var(--rule-2); }
 .panel h2 { display: flex; align-items: baseline; gap: var(--sp-2); font: var(--fw-head) var(--fs-3)/1.25 var(--font-text); letter-spacing: var(--tr-head); color: var(--ink); }
-.panel h2 .ct { font: var(--fw-ui) var(--fs-1)/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
 /* Nothing loaded: one sentence instead of empty panels (JS empties #facts until then). */
 .side-empty { display: none; margin: 0; padding: var(--sp-5); color: var(--ink-2); line-height: 1.5; border-bottom: 1px solid var(--rule-2); }
 .side:has(#facts:empty) .side-empty { display: block; }
@@ -82,7 +81,6 @@ p { margin: 0; }
 .facts dt { padding-right: var(--sp-4); color: var(--ink-2); }
 .facts dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .facts dd b { font: var(--fw-strong) var(--fs-2) var(--font-mono); }
-.facts dd .tiny { color: var(--ink-3); font-size: var(--fs-1); }
 .facts .err { color: var(--danger-ink); font-weight: var(--fw-ui); }
 
 .dates { display: grid; gap: var(--sp-3); }
