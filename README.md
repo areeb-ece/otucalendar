@@ -138,6 +138,32 @@ browser.
   pattern's start date must fall in a week when the lab actually meets.
 - If the page had no meeting dates, enter the first and last class dates of the term.
 
+### Save it as an image
+
+**Save image** draws the schedule as a picture, PNG or SVG, in the style of
+[PrereqFlow](https://areeb-ece.github.io/prereqflow/)'s chart export. You choose:
+
+- **Show:** the whole term (every class on one week), the week on screen in the preview,
+  or every week side by side.
+- **Courses:** any of them.
+- **Include:** the title block and course list, the week table, and rooms on the classes.
+  The credit line is always there.
+- **Format and resolution:** PNG at 2×, 3×, 4× or 6× (stepped down if a browser can't make
+  a canvas that large; the dialog shows the size), or SVG, which scales without loss.
+- **Sheet:** the current theme, dark, or light for printing.
+
+Classes that don't meet every week (alternating labs, or classes that start or end part-way
+through the term) get a letter on their block, with the weeks they meet ("alternate
+weeks, W2–W12"). The **week table** under the schedule lists every week with its dates, and
+for each lettered class the day of the month it meets that week, so the image alone says
+exactly when everything happens. Skipped dates are struck through there and listed in their
+own row. A class counts as weekly when it meets in every week in which one of its days
+falls inside the term, so a Tuesday class isn't flagged because the term ends on a Monday.
+
+The page can't read files over the network (`connect-src 'none'`), so an SVG names its
+fonts (mononoki, Libre Franklin) instead of embedding them; where they aren't installed, the
+viewer uses similar system fonts.
+
 ### Add it to your calendar
 
 - **Google:** on a computer, open Settings → Import & export → Import, choose the file
@@ -157,10 +183,12 @@ so identical classes keep identical IDs.
 index.html                      page, dialogs, Content Security Policy
 css/fallback.css                offline copy of the shared design (night/paper, scales, sd- components)
 css/style.css                   this page's layout and own parts (week grid, chips, popover), tokens only
-js/core.js                      Banner normalization, Toronto time, templates, .ics write + read
+js/core.js                      Banner normalization, Toronto time, templates, .ics write + read, term weeks
 js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
 js/helper.js                    the optional helper bookmark (shown in full on the page)
 js/app.js                       UI: import, appearance, options, week preview, downloads
+js/export.js                    the image export: its dialog and the picture's layout (week sheets, week table)
+js/image.js                     draws an image as PNG (canvas) or SVG, as PrereqFlow's does
 js/theme.js                     offline fallback: applies the saved light/dark sheet
 js/sample.js                    fictional sample (same as samples/sample_schedule.json)
 samples/                        fictional sample schedule and a fictional saved page

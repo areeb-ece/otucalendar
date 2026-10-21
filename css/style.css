@@ -300,6 +300,24 @@ a.bm { display: inline-flex; align-items: center; height: var(--ctl-h-sm); paddi
 .wfoot .by { font-weight: var(--fw-strong); color: var(--ink); }
 .wfoot .by i { font-style: normal; font-weight: var(--fw-text); color: var(--ink-3); }
 
+.wfoot .by a { color: inherit; text-decoration-color: var(--rule); }
+@media (hover: hover) { .wfoot .by a:hover { color: var(--accent); text-decoration-color: var(--accent); } }
+
+/* image export: the choices, a course list with each course's swatch, the size it comes out at */
+.imgdlg { width: min(620px, 100%); }
+.imgset { display: grid; gap: var(--sp-1); margin: 0; padding: 0; border: 0; min-width: 0; }
+.imgset legend { padding: 0; margin-bottom: var(--sp-1); }
+.imgset .sd-check .sd-hint { display: inline; font-size: var(--fs-1); }
+.imgcourses { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); }
+.imgcourses .sw { width: 14px; height: 10px; border: 1px solid color-mix(in srgb, var(--cc) 55%, transparent); border-left: 3px solid var(--cc); border-radius: 2px; background: color-mix(in srgb, var(--cc) var(--ev-mix), var(--card)); }
+.imgcourses b { font: var(--fw-text) var(--fs-1) var(--font-mono); color: var(--ink-2); }
+.imgdlg .sd-seg:not(.wide) { justify-self: start; }
+.imgdlg .sd-seg button:disabled { opacity: .45; cursor: not-allowed; }
+.dims { font: var(--fs-1)/1.4 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.dims:empty { display: none; }
+.imgdlg > footer .status { min-width: 0; }
+#btnImage .sm { display: none; }
+
 /* a file dragged over the window */
 .dropveil { position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; padding: var(--sp-5); background: var(--scrim); pointer-events: none; animation: fade-in var(--dur-1) var(--ease-out); }
 .dropveil .sd-drop { width: min(420px, 100%); background: var(--sheet); box-shadow: var(--shadow-pop); font-size: var(--fs-3); }
@@ -335,6 +353,8 @@ a.bm { display: inline-flex; align-items: center; height: var(--ctl-h-sm); paddi
   .util { margin-left: auto; padding-left: 0; border-left: 0; }
   .actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky); padding: var(--sp-2) var(--sp-4) calc(var(--sp-2) + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--rule); background: var(--sheet); }
   .actions #btnDownload { flex: 1; }
+  #btnImage .lg { display: none; }
+  #btnImage .sm { display: inline; }
   body { padding-bottom: calc(var(--ctl-h) + var(--sp-4) + env(safe-area-inset-bottom, 0px)); }
   .sd-toast.toast { bottom: calc(var(--ctl-h) + var(--sp-6) + env(safe-area-inset-bottom, 0px)); }
   .side { columns: 1; }

@@ -232,6 +232,52 @@ const OC = (() => {
     }
   }
 
+  // ── term weeks (for exported images) ─────────────────────────────────────
+  /** The term's weeks (Monday day numbers, first class to last, as the preview numbers them
+   * W1, W2…) and, for each meeting, the dates it meets in each week. A meeting is weekly
+   * when it meets in every week in which one of its weekdays falls inside the term (so a
+   * Tuesday class isn't irregular because the term ends on a Monday). Skipped dates don't
+   * change that; they're listed apart so an image can show both. */
+  function termWeeks(meetings, skip = new Set()) {
+    let lo = Infinity, hi = -Infinity;
+    for (const m of meetings) { lo = Math.min(lo, m.startDate); hi = Math.max(hi, m.endDate); }
+    if (lo === Infinity) return { weeks: [], patterns: [] };
+    const first = lo - weekday(lo), weeks = [];
+    for (let w = first; w <= hi && weeks.length < 60; w += 7) weeks.push(w);
+    const patterns = meetings.map(m => {
+      const days = weeks.map(() => []), skipped = weeks.map(() => []);
+      for (const [, , day] of occurrences(m)) {
+        const i = Math.floor((day - first) / 7);
+        if (i < weeks.length) (skip.has(day) ? skipped : days)[i].push(day);
+      }
+      const met = weeks.map((_, i) => i).filter(i => days[i].length || skipped[i].length);
+      const possible = weeks.filter(w => m.days.some(d => w + d >= lo && w + d <= hi)).length;
+      return { days, skipped, weeks: met, weekly: met.length === possible };
+    });
+    return { weeks, patterns };
+  }
+
+  /** Week indexes (0-based) → "W2–W14", "alternate weeks, W2–W12", "every 3 weeks, W1–W13"
+   * or "W1–W3, W5, W8" (W numbers as the preview's week chips show them). */
+  function weekList(idx) {
+    const w = [...idx].sort((a, b) => a - b).map(i => i + 1);
+    if (!w.length) return "";
+    if (w.length === 1) return `W${w[0]} only`;
+    const step = w[1] - w[0];
+    if (w.every((x, i) => !i || x - w[i - 1] === step)) {
+      const span = `W${w[0]}–W${w[w.length - 1]}`;
+      return step === 1 ? span : `${step === 2 ? "alternate weeks" : `every ${step} weeks`}, ${span}`;
+    }
+    const runs = [];
+    for (let i = 0; i < w.length; i++) {
+      let j = i;
+      while (j + 1 < w.length && w[j + 1] === w[j] + 1) j++;
+      runs.push(j > i ? `W${w[i]}–W${w[j]}` : `W${w[i]}`);
+      i = j;
+    }
+    return runs.join(", ");
+  }
+
   // ── templates ────────────────────────────────────────────────────────────
   const DEFAULT_STYLE = { title: "{DefaultTitle}", description: "{DefaultDescription}", location: "{Location}" };
   const PRESETS = {
@@ -456,7 +502,7 @@ const OC = (() => {
   return {
     TZ, WEEKDAYS, DAY_LABELS, DAY_MS, text, validCrn, pick, parseDate, parseTime, parseDays, hhmm,
     dayNum, ymd, isoDay, weekday, courseRecords, meetingRecords, instructors, label, normalize,
-    exclusions, exclusionText, zoneParts, zoneOffset, zonedToUtc, localOf, occurrences,
+    exclusions, exclusionText, zoneParts, zoneOffset, zonedToUtc, localOf, occurrences, termWeeks, weekList,
     DEFAULT_STYLE, PRESETS, PLACEHOLDERS, roomLabel, valuesFor, templateParts, renderTemplate, renderEvent,
     sha256hex, pyJsonStr, uidFor, isoUtc, icsUtc, escapeText, fold, makeCalendar, parseIcs, editableSchedule,
   };

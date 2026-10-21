@@ -101,6 +101,32 @@ test("alternating labs and the fictional sample (32 events, as before)", () => {
   assert.deepEqual(require("../js/sample.js"), sample, "js/sample.js must match samples/sample_schedule.json");
 });
 
+test("term weeks for an exported image: which classes aren't weekly, and when they meet", () => {
+  const meetings = OC.normalize(require("../js/sample.js")).meetings;
+  const t = OC.termWeeks(meetings, OC.exclusions("2026-10-12..2026-10-16"));
+  assert.equal(t.weeks.length, 14);
+  assert.equal(OC.isoDay(t.weeks[0]), "2026-09-07");
+  const by = (code, kind) => t.patterns[meetings.findIndex(m => m.code === code && m.kind === kind)];
+  // The alternating lab: W2, W4 … W12, on the Thursday of each.
+  const lab = by("DEMO 1000U", "Laboratory");
+  assert.equal(lab.weekly, false);
+  assert.deepEqual(lab.weeks, [1, 3, 5, 7, 9, 11]);
+  assert.equal(OC.weekList(lab.weeks), "alternate weeks, W2–W12");
+  assert.deepEqual(lab.days[1].map(OC.isoDay), ["2026-09-17"]);
+  // A skipped date keeps its week in the pattern, listed apart.
+  assert.deepEqual(lab.days[5], []);
+  assert.deepEqual(lab.skipped[5].map(OC.isoDay), ["2026-10-15"]);
+  // Starting in week 2 makes a class irregular; the term ending on a Monday doesn't.
+  assert.equal(by("DEMO 1100U", "Tutorial").weekly, false);
+  assert.equal(OC.weekList(by("DEMO 1100U", "Tutorial").weeks), "W2–W13");
+  assert.equal(by("DEMO 1100U", "Lecture").weekly, true);
+  assert.equal(by("DEMO 1000U", "Lecture").weekly, true);
+  assert.deepEqual(OC.termWeeks([]), { weeks: [], patterns: [] });
+  assert.equal(OC.weekList([0, 1, 2, 4, 7]), "W1–W3, W5, W8");
+  assert.equal(OC.weekList([9, 0, 3, 6]), "every 3 weeks, W1–W10");
+  assert.equal(OC.weekList([4]), "W5 only");
+});
+
 test("templates: presets, case-insensitive fields, literal braces, errors", () => {
   const m = OC.normalize(require("../js/sample.js")).meetings[0];
   const r = OC.renderEvent(m, OC.PRESETS.Minimal);

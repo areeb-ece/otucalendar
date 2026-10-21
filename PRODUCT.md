@@ -46,7 +46,8 @@ timetable, downloads the file and imports it into their calendar app.
 - Import, event-text templates with placeholders and presets, reminder, calendar name,
   skip dates (typed or by clicking a day), per-meeting include and repeat interval,
   fallback term dates, week preview with event details, raw `.ics` view, `.ics` and
-  `.json` downloads.
+  `.json` downloads, and the schedule as an image (PNG or SVG; whole term, one week or
+  every week) with a week table giving the exact dates of alternating and part-term classes.
 - Strict CSP: no inline scripts or styles, no `style` attributes (styles go through CSSOM),
   no network connections. No third-party code, no dependencies.
 - Nothing about the schedule is stored. Only templates (`otucalendar.style`), the offline
