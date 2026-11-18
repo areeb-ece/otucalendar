@@ -12,12 +12,27 @@ jobs:
           node-version: 22
       - run: npm test
   browser:
-    runs-on: ubuntu-latest
+    # Pinned: Playwright 1.56.1 can't install its browsers on ubuntu-latest (26.04).
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - run: npm i --no-save playwright@1.56.1
+      # --with-deps installs apt packages from Ubuntu's mirror, which has taken minutes.
+      # apt keeps the .debs in a folder that's cached, so later runs download only updates;
+      # the key changes each month to pick those up.
+      - id: apt
+        run: |
+          mkdir -p ~/apt-archives/partial
+          printf 'Dir::Cache::Archives "%s";\nBinary::apt::APT::Keep-Downloaded-Packages "true";\n' ~/apt-archives | sudo tee /etc/apt/apt.conf.d/99-ci-cache
+          echo "image=$ImageOS" >> "$GITHUB_OUTPUT"
+          echo "month=$(date +%Y-%m)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/apt-archives/*.deb
+          key: apt-chromium-${{ steps.apt.outputs.image }}-${{ steps.apt.outputs.month }}
+          restore-keys: apt-chromium-${{ steps.apt.outputs.image }}-
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
