@@ -1,81 +1,52 @@
 # OTU Calendar
 
-**Live: [areeb-ece.github.io/otucalendar](https://areeb-ece.github.io/otucalendar/)** · made by areeb
+Turn an Ontario Tech course schedule into a calendar file (`.ics`) and a clean schedule image, right in your browser.
 
-Turn your Ontario Tech course schedule into a calendar file (`.ics`) for Google,
-Apple or Outlook Calendar. Before you download it, you can scroll through the term
-week by week and see exactly what the file contains.
+**Live:** [areeb-ece.github.io/otucalendar](https://areeb-ece.github.io/otucalendar/)
 
-It's a static site with no build step, no framework and no server. Your schedule is
-read and the calendar is built inside your browser tab, and nothing is uploaded.
+## Table of Contents
 
----
+- [About](#about)
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Technologies](#technologies)
+- [Setup](#setup)
+- [Usage](#usage)
+- [Project Status](#project-status)
+- [Credits](#credits)
+- [Author](#author)
+- [License](#license)
 
-## Getting started
+## About
 
-```sh
-git clone https://github.com/areeb-ece/otucalendar.git
-cd otucalendar
-python3 -m http.server 8080      # or: npm run serve
-# open http://localhost:8080
-```
+OTU Calendar imports a course schedule from Ontario Tech's Schedule Details page and turns it into a calendar file (`.ics`) for Google, Apple or Outlook Calendar. Before you download it, you can scroll through the term week by week and see exactly what the file contains. It's a static site with no build step, no framework and no server: your schedule is read and the calendar is built inside your browser tab, and nothing is uploaded. I made it so my classes sit in my calendar apps alongside everything else.
 
-You can also open `index.html` directly from disk. Everything works that way, but
-browsers block the font files on `file://`, and the shared design files can't load there, so
-the page falls back to your system fonts and its own offline copy of the design (below).
+## Screenshots
 
-To publish it, turn on GitHub Pages for the repository (Settings → Pages → deploy
-from the `main` branch, root folder).
+![The week preview of the fictional sample schedule, with the reading-week picker and week strip above a week of lectures, a lab and a tutorial](docs/images/screenshot.webp)
 
-## Getting your schedule in
+## Features
 
-MyOntarioTech has no export button and no public API, and a third-party site should
-never ask for your university password. So the student brings the schedule to the
-page instead. There are three ways in:
+- Import
+  - A saved Schedule Details page (`.html` or `.mhtml`)
+  - Copy and paste from the page
+  - Classes entered by hand
+- Week-by-week preview of exactly what the file contains
+  - Skip dates such as holidays and reading week
+- Export
+  - `.ics` for Google, Apple or Outlook Calendar
+  - Schedule image as PNG (up to 6×) or SVG
+- Templates for each event's title, description and location
+- A reminder on every class
+- Runs entirely in the tab: nothing is uploaded
 
-### [A] Saved schedule page (recommended)
-
-1. Open [My course schedule](https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT),
-   sign in on the university's page and choose your term.
-2. Open **Schedule Details** so the meeting times are on screen.
-3. Press <kbd>Ctrl</kbd> <kbd>S</kbd> (<kbd>⌘</kbd> <kbd>S</kbd> on a Mac) and save as
-   **Webpage, Complete** or **Webpage, Single File** (Chrome/Edge), or
-   **Web Page, complete** (Firefox). Don't pick "HTML only": that saves the page as it
-   was before your courses loaded.
-4. Drop the `.html` or `.mhtml` file onto OTU Calendar.
-
-### [B] Copy and paste
-
-On the Schedule Details page press <kbd>Ctrl</kbd> <kbd>A</kbd>, <kbd>Ctrl</kbd> <kbd>C</kbd>
-and paste into **Import → Paste text**. When the clipboard carries the page's
-formatting, the highlighted meeting days are read from it. No file is left behind to
-delete.
-
-Banner's Schedule Details spell the subject out ("Calculus I | Mathematics 1010U Section
-001") and leave the course code to the registration table above them. Each section is
-matched to its code, type and status by its CRN, whether you paste the page or save it.
-`samples/schedule-details-paste.example.txt` is a fictional paste in that layout.
-
-### [C] By hand (last resort)
-
-For a schedule that isn't on Ontario Tech's pages (mostly students elsewhere), or a class
-missing from one: **Enter your classes by hand** on the welcome screen, or **Import → By
-hand**. Add each class with its code, type, days, times, first and last dates and how often
-it repeats, then **Make calendar**. Classes with the same code are one course (one colour,
-a shade per type). **Save .json** keeps the list to load again later.
-Put the term's reading week at the top, if it has one: nothing meets that week, and a
-class every 2 weeks or more skips over it in its count (one that meets in W1, with reading
-week in W2, next meets in W4, not W3). It's kept in the saved `.json` as `reading_week`.
-
-`.json` files saved by OTU Calendar (**Save .json**) or by the earlier Python version
-of this project also load directly.
-
-## Privacy and security
+### Privacy
 
 - **No server.** Parsing, templating and `.ics` generation all run in the tab.
 - **No network.** The page's Content Security Policy includes `connect-src 'none'`,
-  so the page cannot send data anywhere, even by mistake. Fonts and scripts are served
-  from the site itself, and no third-party code is loaded.
+  so the page cannot send data anywhere, even by mistake. No third-party code is loaded.
+  The shared design files come from the portfolio site (`areeb-ece.github.io/design/`,
+  same host, different path).
 - **No credentials.** You only sign in on the university's own page. OTU Calendar
   never sees your password, cookies or session.
 - **Inert parsing.** An uploaded page is parsed with `DOMParser` into a detached
@@ -92,7 +63,139 @@ of this project also load directly.
 The browser check (`npm run test:browser`) asserts that importing and exporting
 makes no request outside the site's own files.
 
-## Using it
+## Technologies
+
+- JavaScript, HTML, CSS (no framework, no build step); JSON for sample data
+- No runtime dependencies (`package.json` lists none); app version 2.0.0
+- Fonts: mononoki (Matthias Tellen, SIL Open Font License 1.1, in `assets/fonts/`) and Libre Franklin (from the shared `/design/` files)
+- Dev/test: Playwright 1.56.1 (installed with `--no-save`, used by CI), Chromium, Node's built-in test runner (`node --test`)
+- Node 22 (used by CI) for tests; Python 3 or any static file server to serve the site locally
+
+### How it's put together
+
+```text
+index.html                      page, dialogs, Content Security Policy
+css/fallback.css                offline copy of the shared design (night/paper, scales, sd- components)
+css/style.css                   this page's layout and own parts (week grid, chips, popover), tokens only
+js/core.js                      Banner normalization, Toronto time, templates, .ics write + read, term weeks
+js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
+js/app.js                       UI: import, appearance, options, week preview, downloads
+js/export.js                    the image export: its dialog and the picture's layout (week sheets, week table)
+js/image.js                     draws an image as PNG (canvas) or SVG, as PrereqFlow's does
+js/theme.js                     offline fallback: applies the saved light/dark sheet
+js/sample.js                    fictional sample (same as samples/sample_schedule.json)
+samples/                        fictional sample schedule and a fictional saved page
+tests/*.test.js                 unit tests (node --test)
+tests/browser-check.js          end-to-end check in Chromium (Playwright)
+assets/fonts/                   mononoki (SIL Open Font License)
+```
+
+The colours, themes, type, spacing and motion scales, the shared `sd-` components
+(buttons, fields, tabs, dialogs, toast…), the settings panel, the sky and the text face
+(Libre Franklin) come from the portfolio repo's `public/design/` (`tokens.css`, `ui.css`,
+`fonts.css`, `theme.js`, `ui.js`), served at `/design/`. The page loads them after
+`css/fallback.css` and before its own `css/style.css`, which uses only their tokens, so
+changing them there restyles every site. They come from the same address, so the Content
+Security Policy needs no change. Opened offline or from disk, they can't load: the page
+falls back to `css/fallback.css` (a copy of the night/paper themes, the scales and the
+`sd-` rules it uses), the system sans and a light/dark button. When the shared files
+change, copy the same sections into `css/fallback.css` again.
+
+## Setup
+
+### Prerequisites
+
+- Python 3 (or any static file server) to serve the site locally
+- A Chromium-based browser or Firefox (Safari's save formats are a limit, see [Project Status](#project-status))
+- Node 22 and Playwright 1.56.1, only to run the tests
+
+### Run locally
+
+```bash
+git clone https://github.com/areeb-ece/otucalendar.git
+cd otucalendar
+python3 -m http.server 8080      # or: npm run serve
+# open http://localhost:8080
+```
+
+There is no build step. You can also open `index.html` directly from disk. Everything works that way, but
+browsers block the font files on `file://`, and the shared design files can't load there, so
+the page falls back to your system fonts and its own offline copy of the design.
+
+The live site is at [areeb-ece.github.io/otucalendar](https://areeb-ece.github.io/otucalendar/).
+To publish your own copy, turn on GitHub Pages for the repository (Settings → Pages → deploy
+from the `main` branch, root folder).
+
+### Tests
+
+```bash
+npm test                                      # unit tests, no dependencies
+npm i --no-save playwright@1.56.1
+npx playwright install chromium
+npm run test:browser
+```
+
+The browser check stubs the shared design files out and tests the fallback. To test with the real
+ones (the portfolio's `public/fonts/` is served too, for Libre Franklin):
+
+```bash
+DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser
+```
+
+### Themes and settings
+
+The gear icon at the top right opens the settings shared by
+[areeb-ece.github.io](https://areeb-ece.github.io/), PrereqFlow and OTU Calendar: a
+theme (Night, Paper, Void, Console, Amber and more, or follow the system), an accent
+colour, corner style, motion, and the night sky behind the week preview (number of
+stars, size, brightness, blur, colour, drift speed and direction, glow). Choices are
+saved in your browser and apply on all three sites.
+
+## Usage
+
+### Getting your schedule in
+
+MyOntarioTech has no export button and no public API, and a third-party site should
+never ask for your university password. So the student brings the schedule to the
+page instead. There are three ways in. Fictional samples to try are in `samples/`:
+`sample_schedule.json`, `saved-schedule-page.example.html` and `schedule-details-paste.example.txt`.
+
+#### [A] Saved schedule page (recommended)
+
+1. Open [My course schedule](https://ssp.mycampus.ca/StudentRegistrationSsb/ssb/registrationHistory/registrationHistory?mepCode=UOIT),
+   sign in on the university's page and choose your term.
+2. Open **Schedule Details** so the meeting times are on screen.
+3. Press <kbd>Ctrl</kbd> <kbd>S</kbd> (<kbd>⌘</kbd> <kbd>S</kbd> on a Mac) and save as
+   **Webpage, Complete** or **Webpage, Single File** (Chrome/Edge), or
+   **Web Page, complete** (Firefox). Don't pick "HTML only": that saves the page as it
+   was before your courses loaded.
+4. Drop the `.html` or `.mhtml` file onto OTU Calendar.
+
+#### [B] Copy and paste
+
+On the Schedule Details page press <kbd>Ctrl</kbd> <kbd>A</kbd>, <kbd>Ctrl</kbd> <kbd>C</kbd>
+and paste into **Import → Paste text**. When the clipboard carries the page's
+formatting, the highlighted meeting days are read from it. No file is left behind to
+delete.
+
+Banner's Schedule Details spell the subject out ("Calculus I | Mathematics 1010U Section
+001") and leave the course code to the registration table above them. Each section is
+matched to its code, type and status by its CRN, whether you paste the page or save it.
+`samples/schedule-details-paste.example.txt` is a fictional paste in that layout.
+
+#### [C] By hand (last resort)
+
+For a schedule that isn't on Ontario Tech's pages (mostly students elsewhere), or a class
+missing from one: **Enter your classes by hand** on the welcome screen, or **Import → By
+hand**. Add each class with its code, type, days, times, first and last dates and how often
+it repeats, then **Make calendar**. Classes with the same code are one course (one colour,
+a shade per type). **Save .json** keeps the list to load again later.
+Put the term's reading week at the top, if it has one: nothing meets that week, and a
+class every 2 weeks or more skips over it in its count (one that meets in W1, with reading
+week in W2, next meets in W4, not W3). It's kept in the saved `.json` as `reading_week`.
+
+`.json` files saved by OTU Calendar (**Save .json**) or by the earlier Python version
+of this project also load directly.
 
 ### Week preview
 
@@ -200,55 +303,12 @@ event. Times are written in UTC and converted one occurrence at a time, so dayli
 saving never shifts a class. Event UIDs are the same as the earlier Python exporter's,
 so identical classes keep identical IDs.
 
-## Project layout
+## Project Status
 
-```
-index.html                      page, dialogs, Content Security Policy
-css/fallback.css                offline copy of the shared design (night/paper, scales, sd- components)
-css/style.css                   this page's layout and own parts (week grid, chips, popover), tokens only
-js/core.js                      Banner normalization, Toronto time, templates, .ics write + read, term weeks
-js/importer.js                  saved page (.html / .mhtml), pasted text and JSON → courses
-js/app.js                       UI: import, appearance, options, week preview, downloads
-js/export.js                    the image export: its dialog and the picture's layout (week sheets, week table)
-js/image.js                     draws an image as PNG (canvas) or SVG, as PrereqFlow's does
-js/theme.js                     offline fallback: applies the saved light/dark sheet
-js/sample.js                    fictional sample (same as samples/sample_schedule.json)
-samples/                        fictional sample schedule and a fictional saved page
-tests/*.test.js                 unit tests (node --test)
-tests/browser-check.js          end-to-end check in Chromium (Playwright)
-assets/fonts/                   mononoki (SIL Open Font License)
-```
+**Complete**, and still updated when something should be added or changed. No new
+features are planned for now.
 
-```sh
-npm test                                      # unit tests, no dependencies
-npm i --no-save playwright && npm run test:browser
-```
-
-## Themes and settings
-
-The gear icon at the top right opens the settings shared by
-[areeb-ece.github.io](https://areeb-ece.github.io/), PrereqFlow and OTU Calendar: a
-theme (Night, Paper, Void, Console, Amber and more, or follow the system), an accent
-colour, corner style, motion, and the night sky behind the week preview (number of
-stars, size, brightness, blur, colour, drift speed and direction, glow). Choices are
-saved in your browser and apply on all three sites.
-
-The colours, themes, type, spacing and motion scales, the shared `sd-` components
-(buttons, fields, tabs, dialogs, toast…), the settings panel, the sky and the text face
-(Libre Franklin) come from the portfolio repo's `public/design/` (`tokens.css`, `ui.css`,
-`fonts.css`, `theme.js`, `ui.js`), served at `/design/`. The page loads them after
-`css/fallback.css` and before its own `css/style.css`, which uses only their tokens, so
-changing them there restyles every site. They come from the same address, so the Content
-Security Policy needs no change. Opened offline or from disk, they can't load: the page
-falls back to `css/fallback.css` (a copy of the night/paper themes, the scales and the
-`sd-` rules it uses), the system sans and a light/dark button. When the shared files
-change, copy the same sections into `css/fallback.css` again.
-
-The browser check stubs those files out and tests the fallback. To test with the real
-ones (the portfolio's `public/fonts/` is served too, for Libre Franklin):
-`DESIGN_DIR=../areeb-ece.github.io/public/design npm run test:browser`.
-
-## Limits
+Known limits:
 
 - The importer reads the Banner 9 schedule page by its text patterns: course codes such
   as `ELEE 2110U`, date ranges, `03:10 PM - 04:30 PM`, `Type:` / `Building:` /
@@ -263,3 +323,17 @@ ones (the portfolio's `public/fonts/` is served too, for Libre Franklin):
   save the page, or the paste option.
 
 This is an independent utility, not an official Ontario Tech application.
+
+## Credits
+
+- Image export style: [PrereqFlow](https://areeb-ece.github.io/prereqflow/)'s chart export.
+- Shared design system (themes, settings, components): from [areeb-ece.github.io](https://areeb-ece.github.io/).
+- Fonts: mononoki by Matthias Tellen (SIL Open Font License 1.1, see `assets/fonts/OFL-mononoki.txt`) and Libre Franklin (via the shared `/design/` files).
+
+## Author
+
+Made by areeb ([areeb-ece.github.io](https://areeb-ece.github.io), [GitHub](https://github.com/areeb-ece)).
+
+## License
+
+MIT. See [LICENSE](LICENSE).
